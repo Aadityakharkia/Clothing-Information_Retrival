@@ -30,10 +30,12 @@ def home():
 
 @page_bp.route("/results")
 def results():
-    q    = request.args.get("q", "").strip()
-    mode = request.args.get("mode", "vsm").strip()
-    if mode not in ("vsm", "phrase", "proximity", "semantic"):
-        mode = "vsm"
+    q = request.args.get("q", "").strip()
+    raw_mode = request.args.get("mode", "vsm").strip()
+    modes = [m.strip() for m in raw_mode.split(",") if m.strip() in ("vsm", "phrase", "proximity", "semantic")]
+    if not modes:
+        modes = ["vsm"]
+    mode = ",".join(modes)
     total_docs, vocab_size = _get_stats()
     return render_template(
         "results.html",

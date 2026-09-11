@@ -35,15 +35,15 @@
             <button class="sidebar-search-btn" id="sidebar-search-btn">Go</button>
           </div>
           <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
-            <button class="mode-chip {% if mode=='vsm' %}active{% endif %}" data-mode="vsm" id="sb-mode-vsm">VSM</button>
-            <button class="mode-chip {% if mode=='phrase' %}active{% endif %}" data-mode="phrase" id="sb-mode-phrase">Phrase</button>
-            <button class="mode-chip {% if mode=='proximity' %}active{% endif %}" data-mode="proximity" id="sb-mode-prox">Proximity</button>
-            <button class="mode-chip {% if mode=='semantic' %}active{% endif %}" data-mode="semantic" id="sb-mode-semantic">✦ Semantic</button>
+            <button class="mode-chip {% if 'vsm' in mode.split(',') %}active{% endif %}" data-mode="vsm" id="sb-mode-vsm">VSM</button>
+            <button class="mode-chip {% if 'phrase' in mode.split(',') %}active{% endif %}" data-mode="phrase" id="sb-mode-phrase">Phrase</button>
+            <button class="mode-chip {% if 'proximity' in mode.split(',') %}active{% endif %}" data-mode="proximity" id="sb-mode-prox">Proximity</button>
+            <button class="mode-chip {% if 'semantic' in mode.split(',') %}active{% endif %}" data-mode="semantic" id="sb-mode-semantic">✦ Semantic</button>
           </div>
         </div>
 
         <!-- Semantic AI Innovations (Idea 4) -->
-        <div class="sidebar-section" id="semantic-innovations" {% if mode != 'semantic' %}style="display:none;"{% endif %}>
+        <div class="sidebar-section" id="semantic-innovations" {% if 'semantic' not in mode.split(',') %}style="display:none;"{% endif %}>
           <span class="sidebar-heading">Neural IR Controls (Idea 4)</span>
 
           <div style="margin-bottom:10px;">
@@ -72,7 +72,7 @@
         </div>
 
         <!-- IR Innovations -->
-        <div class="sidebar-section" id="vsm-innovations" {% if mode != 'vsm' %}style="display:none;"{% endif %}>
+        <div class="sidebar-section" id="vsm-innovations" {% if 'vsm' not in mode.split(',') %}style="display:none;"{% endif %}>
           <span class="sidebar-heading">IR Innovations</span>
 
           <div class="toggle-row">
@@ -189,33 +189,38 @@ async function doSearch(q, mode) {
   const list = document.getElementById('results-list');
   list.innerHTML = `<div class="loading-state"><div class="spinner"></div><h3>Searching…</h3><p>Ranking ${TOTAL_DOCS} garments</p></div>`;
 
+  const activeModes = (typeof mode === 'string' ? mode.split(',') : [mode]).map(m => m.trim()).filter(Boolean);
+  const hasVsm = activeModes.includes('vsm');
+  const hasSemantic = activeModes.includes('semantic');
+  const hasPositional = activeModes.includes('phrase') || activeModes.includes('proximity');
+
   let data;
   try {
-    if (mode === 'vsm') {
-      if (proximityBoostActive) {
-        data = await window.apiClient.searchHybrid(q, 0.5, 10);
-      } else {
-        data = await window.apiClient.searchVSM(q, 10);
-      }
-    } else if (mode === 'semantic') {
+    if (hasSemantic && hasVsm) {
       const alphaSlider = document.getElementById('sem-alpha-slider');
       const alpha = alphaSlider ? parseFloat(alphaSlider.value) : 0.5;
       data = await window.apiClient.searchSemantic(q, 'hybrid', alpha, 10);
-
-      const intentBadge = document.getElementById('sem-intent-badge');
-      if (intentBadge && data.is_natural_language !== undefined) {
-        if (data.is_natural_language) {
-          intentBadge.textContent = 'Natural Language';
-          intentBadge.style.background = 'rgba(180,120,255,0.2)';
-          intentBadge.style.color = '#d4b4ff';
-        } else {
-          intentBadge.textContent = 'Keyword Query';
-          intentBadge.style.background = 'rgba(100,160,255,0.2)';
-          intentBadge.style.color = '#a0c4ff';
-        }
-      }
+    } else if (hasSemantic) {
+      data = await window.apiClient.searchSemantic(q, 'semantic', 1.0, 10);
+    } else if (hasVsm && (hasPositional || proximityBoostActive)) {
+      data = await window.apiClient.searchHybrid(q, 0.5, 10);
+    } else if (hasVsm) {
+      data = await window.apiClient.searchVSM(q, 10);
     } else {
       data = await window.apiClient.searchPositional(q);
+    }
+
+    const intentBadge = document.getElementById('sem-intent-badge');
+    if (intentBadge && data.is_natural_language !== undefined) {
+      if (data.is_natural_language) {
+        intentBadge.textContent = 'Natural Language';
+        intentBadge.style.background = 'rgba(180,120,255,0.2)';
+        intentBadge.style.color = '#d4b4ff';
+      } else {
+        intentBadge.textContent = 'Keyword Query';
+        intentBadge.style.background = 'rgba(100,160,255,0.2)';
+        intentBadge.style.color = '#a0c4ff';
+      }
     }
   } catch(e) {
     list.innerHTML = `<div class="no-results"><h3>Error</h3><p>${e.message}</p></div>`;
@@ -223,14 +228,12 @@ async function doSearch(q, mode) {
   }
 
   const results = data.results || [];
-  let modeLabel = 'VSM lnc.ltc';
-  if (mode === 'semantic') {
-    modeLabel = '✦ Semantic AI (MiniLM)';
-  } else if (mode === 'vsm') {
-    modeLabel = proximityBoostActive ? 'Hybrid Proximity Boost' : 'VSM lnc.ltc';
-  } else {
-    modeLabel = data.search_type === 'exact_phrase' ? 'Exact Phrase' : 'Proximity WITHIN/k';
-  }
+  let modeLabels = [];
+  if (hasVsm) modeLabels.push('VSM');
+  if (activeModes.includes('phrase')) modeLabels.push('Phrase');
+  if (activeModes.includes('proximity')) modeLabels.push('Proximity');
+  if (hasSemantic) modeLabels.push('✦ Semantic');
+  let modeLabel = modeLabels.length ? modeLabels.join(' + ') : 'VSM';
 
   document.getElementById('results-count-label').textContent =
     `${results.length} garment${results.length !== 1 ? 's' : ''} found`;
@@ -320,18 +323,23 @@ function updateRocchioBtn() {
   btn.disabled = selDocs.size === 0;
 }
 
-// ── Mode chips (sidebar) ─────────────────────────────
+// ── Mode chips (sidebar multiselect) ─────────────────
 document.querySelectorAll('.mode-chip').forEach(chip => {
   chip.addEventListener('click', () => {
-    document.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    currentMode = chip.getAttribute('data-mode');
+    chip.classList.toggle('active');
+    const activeChips = Array.from(document.querySelectorAll('.mode-chip.active'));
+    if (activeChips.length === 0) {
+      chip.classList.add('active');
+    }
+    const activeModes = Array.from(document.querySelectorAll('.mode-chip.active'))
+      .map(c => c.getAttribute('data-mode'));
+    currentMode = activeModes.join(',');
 
     const vsm = document.getElementById('vsm-innovations');
-    if (vsm) vsm.style.display = currentMode === 'vsm' ? '' : 'none';
+    if (vsm) vsm.style.display = activeModes.includes('vsm') ? '' : 'none';
 
     const sem = document.getElementById('semantic-innovations');
-    if (sem) sem.style.display = currentMode === 'semantic' ? '' : 'none';
+    if (sem) sem.style.display = activeModes.includes('semantic') ? '' : 'none';
 
     doSearch(document.getElementById('sidebar-query-input').value.trim() || QUERY, currentMode);
   });
