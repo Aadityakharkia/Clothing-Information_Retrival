@@ -50,7 +50,7 @@ class ApiClient {
   }
 
   // Domain-specific IR methods
-  searchVSM(query, topK = 10) {
+  searchVSM(query, topK = 100) {
     const params = new URLSearchParams({ q: query, top_k: topK });
     return this.request(`/search/vsm?${params.toString()}`);
   }
@@ -60,12 +60,12 @@ class ApiClient {
     return this.request(`/search/positional?${params.toString()}`);
   }
 
-  searchHybrid(query, lambdaParam = 0.5, topK = 10) {
+  searchHybrid(query, lambdaParam = 0.5, topK = 100) {
     const params = new URLSearchParams({ q: query, lambda: lambdaParam, top_k: topK });
     return this.request(`/search/hybrid?${params.toString()}`);
   }
 
-  searchSemantic(query, mode = 'hybrid', alpha = 0.5, topK = 10) {
+  searchSemantic(query, mode = 'hybrid', alpha = 0.5, topK = 100) {
     const params = new URLSearchParams({ q: query, mode, alpha, top_k: topK });
     return this.request(`/search/semantic?${params.toString()}`);
   }
@@ -76,6 +76,7 @@ class ApiClient {
   }
 
   submitRocchioFeedback(payload) {
+    if (!payload.top_k) payload.top_k = 100;
     return this.request('/feedback', {
       method: 'POST',
       body: payload

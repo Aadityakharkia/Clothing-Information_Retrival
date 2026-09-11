@@ -6,11 +6,11 @@ Handles orchestration for free-text VSM, positional phrase, and hybrid proximity
 
 import time
 from typing import Dict, Any
-from flask import g
+from flask import g, has_app_context
 from ..services import get_ir_system
 
 
-def handle_vsm_search(query: str, top_k: int, corpus_path: str) -> Dict[str, Any]:
+def handle_vsm_search(query: str, top_k: int = 100, corpus_path: str = None) -> Dict[str, Any]:
     t0 = time.time()
     ir = get_ir_system(corpus_path)
     vsm = ir["vsm"]
@@ -19,7 +19,7 @@ def handle_vsm_search(query: str, top_k: int, corpus_path: str) -> Dict[str, Any
     _, _, query_details = vsm.compute_query_weights(query)
 
     duration_ms = round((time.time() - t0) * 1000, 2)
-    token = getattr(getattr(g, "request_trace", None), "token", None)
+    token = getattr(getattr(g, "request_trace", None), "token", None) if has_app_context() else None
 
     return {
         "success": True,
@@ -33,7 +33,7 @@ def handle_vsm_search(query: str, top_k: int, corpus_path: str) -> Dict[str, Any
     }
 
 
-def handle_positional_search(query: str, corpus_path: str) -> Dict[str, Any]:
+def handle_positional_search(query: str, corpus_path: str = None) -> Dict[str, Any]:
     t0 = time.time()
     ir = get_ir_system(corpus_path)
     pos_searcher = ir["positional"]
@@ -41,7 +41,7 @@ def handle_positional_search(query: str, corpus_path: str) -> Dict[str, Any]:
     query_type, results = pos_searcher.parse_and_search(query)
 
     duration_ms = round((time.time() - t0) * 1000, 2)
-    token = getattr(getattr(g, "request_trace", None), "token", None)
+    token = getattr(getattr(g, "request_trace", None), "token", None) if has_app_context() else None
 
     return {
         "success": True,
@@ -55,7 +55,7 @@ def handle_positional_search(query: str, corpus_path: str) -> Dict[str, Any]:
     }
 
 
-def handle_hybrid_search(query: str, lambda_param: float, top_k: int, corpus_path: str) -> Dict[str, Any]:
+def handle_hybrid_search(query: str, lambda_param: float = 0.5, top_k: int = 100, corpus_path: str = None) -> Dict[str, Any]:
     t0 = time.time()
     ir = get_ir_system(corpus_path)
     advanced = ir["advanced"]
@@ -63,7 +63,7 @@ def handle_hybrid_search(query: str, lambda_param: float, top_k: int, corpus_pat
     results = advanced.search_hybrid_proximity_boost(query, lambda_param=lambda_param, top_k=top_k)
 
     duration_ms = round((time.time() - t0) * 1000, 2)
-    token = getattr(getattr(g, "request_trace", None), "token", None)
+    token = getattr(getattr(g, "request_trace", None), "token", None) if has_app_context() else None
 
     return {
         "success": True,
