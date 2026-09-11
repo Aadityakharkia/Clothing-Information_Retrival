@@ -1,11 +1,11 @@
 {
   "name": "clothing-information-retrieval",
   "version": "1.0.0",
-  "description": "Clothing Information Retrieval Engine (CSD358)",
+  "description": "Clothing Information Retrieval Engine (CSD358) — VSM · Positional · Semantic · Hybrid",
   "scripts": {
-    "dev": "if [ -f .venv/bin/python ]; then .venv/bin/python web/app.py; else python3 web/app.py; fi",
-    "start": "if [ -f .venv/bin/python ]; then .venv/bin/python web/app.py; else python3 web/app.py; fi",
-    "test": "if [ -f .venv/bin/pytest ]; then .venv/bin/pytest; else pytest; fi"
+    "dev":   "FLASK_ENV=development .venv/bin/python3 backend/server.py",
+    "start": "FLASK_ENV=production  .venv/bin/python3 backend/server.py",
+    "setup": "python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"
   },
   "author": "",
   "license": "ISC"
