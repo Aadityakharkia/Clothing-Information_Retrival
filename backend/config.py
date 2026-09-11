@@ -47,7 +47,7 @@ class Config:
 
     # IR Hyperparameters
     TOTAL_DOCS = 100
-    DEFAULT_TOP_K = 10
+    DEFAULT_TOP_K = 100
     DEFAULT_PROXIMITY_K = 3
     DEFAULT_HYBRID_LAMBDA = 0.5
 

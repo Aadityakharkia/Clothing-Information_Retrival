@@ -14,7 +14,7 @@ def handle_semantic_search(
     query: str,
     mode: str = "hybrid",
     alpha: float = 0.5,
-    top_k: int = 10,
+    top_k: int = 100,
     corpus_path: str = None
 ) -> Dict[str, Any]:
     """

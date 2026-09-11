@@ -261,6 +261,7 @@ class AdvancedIREngine:
                 "category": doc.category,
                 "title": doc.title,
                 "text": doc.text,
+                "cosine_score": round(doc_scores[doc_id], 6),
                 "rocchio_score": round(doc_scores[doc_id], 6),
                 "is_marked_relevant": doc_id in relevant_doc_ids
             })

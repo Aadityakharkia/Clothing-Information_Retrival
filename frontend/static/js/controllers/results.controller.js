@@ -101,7 +101,7 @@ class ResultsPageController {
       });
     }
 
-    // 1-Click PRF (IR Idea 3)
+    // Auto-Refine with Related Terms (PRF)
     const prfBtn = document.getElementById('prf-btn');
     if (prfBtn) {
       prfBtn.addEventListener('click', async () => {
@@ -109,7 +109,7 @@ class ResultsPageController {
       });
     }
 
-    // Apply Rocchio (user selected)
+    // Refine with Selected (User feedback)
     const rocchioBtn = document.getElementById('rocchio-btn');
     if (rocchioBtn) {
       rocchioBtn.addEventListener('click', async () => {
@@ -147,7 +147,7 @@ class ResultsPageController {
       } else if (this.mode === 'semantic') {
         const alphaSlider = document.getElementById('sem-alpha-slider');
         const alpha = alphaSlider ? parseFloat(alphaSlider.value) : 0.5;
-        response = await this.apiClient.searchSemantic(this.query, 'hybrid', alpha, 10);
+        response = await this.apiClient.searchSemantic(this.query, 'hybrid', alpha, 100);
 
         // Update intent badge
         const intentBadge = document.getElementById('sem-intent-badge');
@@ -165,9 +165,9 @@ class ResultsPageController {
       } else {
         // VSM or Hybrid
         if (this.isBoostActive) {
-          response = await this.apiClient.searchHybrid(this.query, 0.5, 10);
+          response = await this.apiClient.searchHybrid(this.query, 0.5, 100);
         } else {
-          response = await this.apiClient.searchVSM(this.query, 10);
+          response = await this.apiClient.searchVSM(this.query, 100);
         }
       }
 
@@ -187,10 +187,13 @@ class ResultsPageController {
   }
 
   handleDocSelection(docId, isChecked) {
+    if (!window.selDocs) window.selDocs = new Set();
     if (isChecked) {
       this.relevantDocIds.add(docId);
+      window.selDocs.add(docId);
     } else {
       this.relevantDocIds.delete(docId);
+      window.selDocs.delete(docId);
     }
     this.view.updateSelectionCount(this.relevantDocIds.size);
   }
@@ -203,7 +206,7 @@ class ResultsPageController {
         relevant_doc_ids: Array.from(this.relevantDocIds),
         irrelevant_doc_ids: [],
         is_prf: isPrf,
-        top_k: 10
+        top_k: 100
       };
       const response = await this.apiClient.submitRocchioFeedback(payload);
       this.view.renderExpandedTerms(response.top_expanded_terms || []);
@@ -222,7 +225,9 @@ class ResultsPageController {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('results-page')) {
+  // Only activate the MVC controller if the inline script isn't handling the page
+  // (The inline script in results.html sets window.selDocs directly and calls doSearch)
+  if (document.getElementById('results-page') && typeof window.doSearch === 'undefined') {
     window.resultsPageController = new ResultsPageController();
   }
 });
