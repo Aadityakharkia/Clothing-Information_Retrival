@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Index Explorer — Vocabulary{% endblock %}
+
+{% block content %}
+<div class="inner-page" id="vocab-page">
+  <div class="inner-page-inner">
+
+    <span class="page-kicker">INDEX DICTIONARY · PART A OUTPUT</span>
+    <h1 class="page-title">Vocabulary &amp;<br>Positional Postings</h1>
+    <p class="page-subtitle">
+      Inspect all stemmed terms, document frequencies (DF), IDF weights,
+      and the positional postings with token offsets. Built by Porter Stemmer + stop-word filter.
+    </p>
+
+    <!-- Filter row -->
+    <div class="index-filter-row">
+      <div class="filter-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="vocab-filter" placeholder="Filter terms (e.g. cotton, jean, kurta)…" aria-label="Filter vocabulary terms">
+      </div>
+      <span class="vocab-badge" id="vocab-count">Loading…</span>
+      <button class="refresh-btn" id="refresh-vocab-btn" style="margin-bottom:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Reload
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap" id="index-table-wrap">
+      <div class="loading-state" style="padding:60px 20px;">
+        <div class="spinner"></div>
+        <h3>Loading index…</h3>
+        <p>Reading vocabulary from positional index</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let allTerms = [];
+
+  async function loadVocab() {
+    const wrap = document.getElementById('index-table-wrap');
+    wrap.innerHTML = `<div class="loading-state" style="padding:60px 20px;"><div class="spinner"></div><h3>Loading index…</h3></div>`;
+    try {
+      const res  = await fetch('/api/vocabulary');
+      const data = await res.json();
+      allTerms = data.terms || [];
+      document.getElementById('vocab-count').textContent = `${allTerms.length} terms`;
+      renderTable(allTerms);
+    } catch(e) {
+      wrap.innerHTML = `<p style="padding:24px;color:red;">Error: ${e.message}</p>`;
+    }
+  }
+
+  function escHtml(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderTable(terms) {
+    const maxDf = Math.max(...terms.map(t => t.df || 0), 1);
+    const rows = terms.map(t => {
+      const pct = Math.round(((t.df || 0) / maxDf) * 100);
+      const postingsSample = (t.postings || []).slice(0, 4)
+        .map(p => `${p.doc_id}[${p.tf}:${(p.positions||[]).slice(0,3).join(',')}${(p.positions||[]).length>3?'…':''}]`)
+        .join(' · ');
+      return `
+        <tr>
+          <td><span class="term-token">${escHtml(t.term)}</span></td>
+          <td>
+            <div class="df-bar-wrap">
+              <div class="df-bar" style="width:${Math.max(pct,4)}px;"></div>
+              <span class="df-num">${t.df}</span>
+            </div>
+          </td>
+          <td><span class="idf-num">${t.idf != null ? t.idf.toFixed(4) : '—'}</span></td>
+          <td><span class="postings-preview">${escHtml(postingsSample) || '—'}</span></td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('index-table-wrap').innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:160px;">Stemmed Term</th>
+            <th style="width:160px;">DF (bar)</th>
+            <th style="width:120px;">IDF (log₁₀)</th>
+            <th>Postings Sample: docID[tf:positions]</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  // Filter
+  document.getElementById('vocab-filter').addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    const filtered = q ? allTerms.filter(t => (t.term||'').includes(q)) : allTerms;
+    document.getElementById('vocab-count').textContent = `${filtered.length} / ${allTerms.length} terms`;
+    renderTable(filtered);
+  });
+
+  document.getElementById('refresh-vocab-btn').addEventListener('click', loadVocab);
+  loadVocab();
+</script>
+{% endblock %}

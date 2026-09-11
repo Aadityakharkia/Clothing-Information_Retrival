@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+{% block title %}Clothing Search Engine{% endblock %}
+
+{% block content %}
+<div class="search-page" id="search-page">
+
+  <!-- Floating decoration shapes (matching reference image) -->
+  <div class="deco-shape deco-sq-pink" style="top:26%; left:38%;">100%</div>
+  <div class="deco-shape deco-sq-teal" style="bottom:22%; right:52%;">✦</div>
+  <div class="deco-shape deco-sq-purple" style="top:18%; right:44%;">IR</div>
+  <div class="deco-button-3d" title="3D Garment Accent"></div>
+
+  <!-- MAIN WRAPPER -->
+  <div style="width:100%; position:relative; z-index:2;">
+
+    <!-- Top Feature Line Bar (Exact Reference Match) -->
+    <div class="top-feature-bar">
+      <div class="top-feature-icon">IR</div>
+      <span class="top-feature-text">Key features</span>
+      <div class="top-feature-line"></div>
+      <span class="top-feature-star">✦</span>
+    </div>
+
+    <!-- HERO GRID -->
+    <div class="search-page-inner">
+
+      <!-- LEFT: Hero Headline & Search -->
+      <div class="hero-left">
+
+        <div class="hero-badge">
+          Powerful tool for clothing retrieval
+        </div>
+
+        <h1 class="hero-headline">
+          <span class="hl-line1">Clothing <span class="hl-accent-sq">IR</span></span>
+          <span class="hl-line2">search</span>
+          <span class="hl-line3">engine</span>
+        </h1>
+
+        <!-- Search pill input bar -->
+        <form class="search-pill-wrap" id="search-form" action="/results" method="GET">
+          <div class="search-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              name="q"
+              id="main-search-input"
+              placeholder="Search for a garment or an apparel category"
+              value=""
+              autocomplete="off"
+              aria-label="Search for clothing"
+            >
+            <button type="submit" class="search-btn" id="main-search-btn">Search</button>
+          </div>
+
+          <!-- Mode selector chips -->
+          <div class="mode-selector" id="mode-selector">
+            <button type="button" class="mode-chip active" data-mode="vsm" id="mode-vsm">VSM Free-text</button>
+            <button type="button" class="mode-chip" data-mode="phrase" id="mode-phrase">&ldquo;Exact Phrase&rdquo;</button>
+            <button type="button" class="mode-chip" data-mode="proximity" id="mode-prox">WITHIN/k Proximity</button>
+          </div>
+          <input type="hidden" name="mode" id="mode-hidden" value="vsm">
+        </form>
+
+        <!-- Sample query chips -->
+        <div class="sample-qs" id="sample-qs">
+          <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-right:4px;">Try:</span>
+          <button type="button" class="sample-q" data-q="breathable cotton t-shirt" data-mode="vsm">breathable cotton t-shirt</button>
+          <button type="button" class="sample-q" data-q="black slim fit casual shirt" data-mode="vsm">black slim fit shirt</button>
+          <button type="button" class="sample-q" data-q="stretch denim jeans grey" data-mode="vsm">stretch denim jeans</button>
+          <button type="button" class="sample-q phrase-q" data-q="cotton shirt" data-mode="phrase">&ldquo;cotton shirt&rdquo;</button>
+          <button type="button" class="sample-q phrase-q" data-q="stretch denim" data-mode="phrase">&ldquo;stretch denim&rdquo;</button>
+          <button type="button" class="sample-q prox-q" data-q="winter WITHIN/3 wear" data-mode="proximity">winter WITHIN/3 wear</button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Garment Hero Card (Exact Reference Gradient & Typography) -->
+      <div class="hero-right">
+        <div class="garment-hero-card" id="garment-hero-card">
+          <div class="card-glow-tr"></div>
+          <div class="card-glow-bl"></div>
+          <div class="card-z">
+
+            <div class="card-top-row">
+              <div class="card-label-tag">
+                <span style="font-size:1.05rem;line-height:1;margin-right:4px;">✦</span>
+                GARMENT CARD
+              </div>
+              <span class="card-id-pill" id="card-doc-id">D001</span>
+            </div>
+
+            <!-- Actual product photography embedded in card -->
+            <div style="position:relative;width:100%;height:180px;border-radius:12px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(255,255,255,0.12);background:#100824;">
+              <img src="/static/images/hero_tshirt.jpg" alt="Men's Cotton Crew Neck T-Shirt" style="width:100%;height:100%;object-fit:cover;" id="hero-card-img">
+              <div style="position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);padding:2px 8px;border-radius:4px;font-size:0.68rem;font-family:var(--font-mono);color:#fff;">
+                100% Combed Cotton
+              </div>
+            </div>
+
+            <h2 class="card-product-name" id="card-product-name" style="font-size:1.5rem;">Men's Crew T-Shirt</h2>
+
+            <div class="card-specs" id="card-specs">
+              <div class="card-spec">Category: <strong style="color:#fff;">T-Shirt</strong></div>
+              <div class="card-spec">Fabric: <strong style="color:#fff;">100% Cotton · 180 GSM</strong></div>
+              <div class="card-spec">Fit: <strong style="color:#fff;">Regular Fit · Pre-Shrunk</strong></div>
+            </div>
+
+            <div class="card-divider"></div>
+
+            <span class="card-metrics-label">RETRIEVAL METRICS</span>
+            <div class="card-metrics-row">
+              <div class="card-metric">
+                <span class="card-metric-val" id="card-rank">100 Docs</span>
+                <span class="card-metric-lbl">indexed corpus</span>
+              </div>
+              <div class="card-metric">
+                <span class="card-metric-val" id="card-score">lnc.ltc</span>
+                <span class="card-metric-lbl">cosine normalized</span>
+              </div>
+            </div>
+
+            <div class="card-bottom" id="card-bottom-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>
+              </svg>
+              <span id="card-bottom-text">100% Breathable Cotton · Machine Washable</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Year & Domain Footer (Matching Reference Image) -->
+    <div style="display:flex;justify-content:space-between;align-items:center;max-width:var(--max-w);margin:36px auto 0 auto;padding:0 48px;font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-dark);">
+      <span>2024</span>
+      <span style="color:var(--text-dark);letter-spacing:-0.01em;">clothing-ir.engine</span>
+    </div>
+
+  </div>
+
+  <!-- CLOTHING SHOWCASE & TAXONOMY SECTION (Images & Elements) -->
+  <section class="home-clothing-section">
+
+    <!-- Fabric Attributes Bar -->
+    <div class="fabric-chips-wrap">
+      <span class="fabric-label">Popular Fabrics:</span>
+      <button type="button" class="fabric-chip" data-fabric="100% cotton">100% Pure Cotton</button>
+      <button type="button" class="fabric-chip" data-fabric="stretch denim">Stretch Denim</button>
+      <button type="button" class="fabric-chip" data-fabric="warm fleece">Thermal Fleece</button>
+      <button type="button" class="fabric-chip" data-fabric="pure linen">Pure Linen</button>
+      <button type="button" class="fabric-chip" data-fabric="silk jacquard">Silk Jacquard</button>
+      <button type="button" class="fabric-chip" data-fabric="rayon blend">Breathable Rayon</button>
+    </div>
+
+    <!-- FEATURED GARMENT CATALOG (Real Product Photography) -->
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">FEATURED IN CATALOG</span>
+        <h2 class="section-title">Apparel Catalog Highlights</h2>
+      </div>
+      <span style="font-size:0.82rem;font-weight:600;color:var(--text-muted);">{{ total_docs }} catalog items indexed</span>
+    </div>
+
+    <div class="garment-catalog-grid">
+
+      <!-- Item 1: T-Shirt -->
+      <div class="garment-catalog-card">
+        <div style="width:100%;height:180px;border-radius:10px;overflow:hidden;margin-bottom:14px;background:#100824;">
+          <img src="/static/images/hero_tshirt.jpg" alt="Men's Cotton Crew Neck T-Shirt" style="width:100%;height:100%;object-fit:cover;">
+        </div>
+        <div class="gcc-head">
+          <span class="gcc-badge">D001</span>
+          <span class="gcc-cat-tag">T-Shirt</span>
+        </div>
+        <h3 class="gcc-title">Men's Cotton Crew Neck T-Shirt — Black</h3>
+        <p class="gcc-desc">100% combed cotton jersey fabric. Breathable, pre-shrunk, double-needle stitched neckline.</p>
+        <div class="gcc-foot">
+          <button type="button" class="gcc-action-btn inspect-trigger" data-doc-id="D001">Inspect Garment &rarr;</button>
+          <button type="button" class="gcc-action-btn search-trigger" data-q="crew neck cotton t-shirt">Search Similar &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Item 2: Denim Jeans -->
+      <div class="garment-catalog-card">
+        <div style="width:100%;height:180px;border-radius:10px;overflow:hidden;margin-bottom:14px;background:#F3F4F6;">
+          <img src="/static/images/denim_jeans.jpg" alt="Men's Slim Fit Stretch Denim Jeans" style="width:100%;height:100%;object-fit:cover;">
+        </div>
+        <div class="gcc-head">
+          <span class="gcc-badge">D003</span>
+          <span class="gcc-cat-tag">Jeans</span>
+        </div>
+        <h3 class="gcc-title">Men's Slim Fit Stretch Denim Jeans — Grey</h3>
+        <p class="gcc-desc">Medium wash grey denim with 2% elastane for flexible comfort. Five-pocket styling and brass rivets.</p>
+        <div class="gcc-foot">
+          <button type="button" class="gcc-action-btn inspect-trigger" data-doc-id="D003">Inspect Garment &rarr;</button>
+          <button type="button" class="gcc-action-btn search-trigger" data-q="stretch denim jeans">Search Similar &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Item 3: Hoodie -->
+      <div class="garment-catalog-card">
+        <div style="width:100%;height:180px;border-radius:10px;overflow:hidden;margin-bottom:14px;background:#F3F4F6;">
+          <img src="/static/images/fleece_hoodie.jpg" alt="Women's Warm Fleece Pullover Hoodie" style="width:100%;height:100%;object-fit:cover;">
+        </div>
+        <div class="gcc-head">
+          <span class="gcc-badge">D005</span>
+          <span class="gcc-cat-tag">Hoodie</span>
+        </div>
+        <h3 class="gcc-title">Women's Warm Fleece Pullover Hoodie — Lavender</h3>
+        <p class="gcc-desc">Brushed thermal poly-fleece lining with adjustable hood and kangaroo pocket for winter layering.</p>
+        <div class="gcc-foot">
+          <button type="button" class="gcc-action-btn inspect-trigger" data-doc-id="D005">Inspect Garment &rarr;</button>
+          <button type="button" class="gcc-action-btn search-trigger" data-q="warm fleece hoodie">Search Similar &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Item 4: Kurta -->
+      <div class="garment-catalog-card">
+        <div style="width:100%;height:180px;border-radius:10px;overflow:hidden;margin-bottom:14px;background:#FDFBF7;">
+          <img src="/static/images/ethnic_kurta.jpg" alt="Men's Mandarin Collar Cotton Kurta" style="width:100%;height:100%;object-fit:cover;">
+        </div>
+        <div class="gcc-head">
+          <span class="gcc-badge">D007</span>
+          <span class="gcc-cat-tag">Kurta</span>
+        </div>
+        <h3 class="gcc-title">Men's Mandarin Collar Cotton Kurta — Maroon</h3>
+        <p class="gcc-desc">Breathable handloom cotton slub weave. Straight cut with side slits and tonal button placket.</p>
+        <div class="gcc-foot">
+          <button type="button" class="gcc-action-btn inspect-trigger" data-doc-id="D007">Inspect Garment &rarr;</button>
+          <button type="button" class="gcc-action-btn search-trigger" data-q="mandarin collar cotton kurta">Search Similar &rarr;</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Garment Categories Head -->
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">GARMENT TAXONOMY</span>
+        <h2 class="section-title">Explore by Apparel Category</h2>
+      </div>
+    </div>
+
+    <!-- Garment Categories Grid with Vector Clothing Icons -->
+    <div class="clothing-cat-grid">
+
+      <!-- T-Shirts -->
+      <div class="clothing-cat-card" data-q="cotton crew neck t-shirt" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">T-Shirts</span>
+        <span class="clothing-cat-meta">Crew neck, polo, graphics</span>
+        <span class="clothing-cat-fabric">100% Combed Cotton</span>
+      </div>
+
+      <!-- Shirts -->
+      <div class="clothing-cat-card" data-q="casual slim fit shirt" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 4 16 2a4 4 0 0 1-8 0L4 4l-2 6 4 2V22h12V12l4-2-2-6z"/><path d="M12 2v20"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">Shirts</span>
+        <span class="clothing-cat-meta">Slim fit, oxford, linen</span>
+        <span class="clothing-cat-fabric">Cotton &amp; Linen Blend</span>
+      </div>
+
+      <!-- Jeans -->
+      <div class="clothing-cat-card" data-q="stretch denim jeans" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 2h16v3l-2 17h-5l-1-11-1 11H6L4 5V2z"/><path d="M4 6h16"/><path d="M12 2v6"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">Jeans</span>
+        <span class="clothing-cat-meta">Skinny, tapered, regular</span>
+        <span class="clothing-cat-fabric">Stretch Elastane Denim</span>
+      </div>
+
+      <!-- Kurtas -->
+      <div class="clothing-cat-card" data-q="cotton ethnic kurta" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 2 8 2l-4 4 3 3v13h10V9l3-3-4-4z"/><path d="M12 2v7"/><path d="M10 9h4"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">Kurtas</span>
+        <span class="clothing-cat-meta">Traditional ethnic wear</span>
+        <span class="clothing-cat-fabric">Handloom Cotton</span>
+      </div>
+
+      <!-- Sarees -->
+      <div class="clothing-cat-card" data-q="festive silk saree" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4c0 8 8 16 16 16"/><path d="M4 4c4 0 8 4 8 8"/><circle cx="12" cy="12" r="2"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">Sarees</span>
+        <span class="clothing-cat-meta">Zari border, festive prints</span>
+        <span class="clothing-cat-fabric">Silk &amp; Georgette</span>
+      </div>
+
+      <!-- Hoodies -->
+      <div class="clothing-cat-card" data-q="winter fleece hoodie" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a5 5 0 0 0-5 5v1L2 11l3 3 1-1v8h12v-8l1 1 3-3-5-3V7a5 5 0 0 0-5-5z"/><path d="M9 14h6"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">Hoodies</span>
+        <span class="clothing-cat-meta">Pullover fleece, warm kangaroo</span>
+        <span class="clothing-cat-fabric">Brushed Poly-Fleece</span>
+      </div>
+
+      <!-- Jackets -->
+      <div class="clothing-cat-card" data-q="quilted puffer jacket" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16l2 8-5 1v9H7v-9L2 12l2-8z"/><path d="M12 4v18"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">Jackets</span>
+        <span class="clothing-cat-meta">Puffer, bomber, winter shell</span>
+        <span class="clothing-cat-fabric">Insulated Nylon Shell</span>
+      </div>
+
+      <!-- Leggings & Bottoms -->
+      <div class="clothing-cat-card" data-q="high waist stretch leggings" data-mode="vsm">
+        <div class="clothing-cat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 2h14v2l-2 18h-4l-1-10-1 10H7L5 4V2z"/>
+          </svg>
+        </div>
+        <span class="clothing-cat-name">Leggings</span>
+        <span class="clothing-cat-meta">Ankle length, 4-way stretch</span>
+        <span class="clothing-cat-fabric">Cotton Spandex Blend</span>
+      </div>
+
+    </div>
+
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- View & Controller scripts for Search Page -->
+<script src="/static/js/views/search.view.js"></script>
+<script src="/static/js/controllers/search.controller.js"></script>
+
+<script>
+  // Mode chip selection
+  const modeChips = document.querySelectorAll('.mode-chip');
+  const modeHidden = document.getElementById('mode-hidden');
+  const searchInput = document.getElementById('main-search-input');
+
+  modeChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      modeChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      if (modeHidden) modeHidden.value = chip.getAttribute('data-mode');
+    });
+  });
+
+  // Category cards click
+  document.querySelectorAll('.clothing-cat-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const q = card.getAttribute('data-q');
+      const mode = card.getAttribute('data-mode') || 'vsm';
+      if (searchInput) searchInput.value = q;
+      if (modeHidden) modeHidden.value = mode;
+      window.location.href = `/results?q=${encodeURIComponent(q)}&mode=${mode}`;
+    });
+  });
+
+  // Fabric chips click
+  document.querySelectorAll('.fabric-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const fabric = chip.getAttribute('data-fabric');
+      if (searchInput) searchInput.value = fabric;
+      window.location.href = `/results?q=${encodeURIComponent(fabric)}&mode=vsm`;
+    });
+  });
+
+  // Showcase buttons click
+  document.querySelectorAll('.search-trigger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const q = btn.getAttribute('data-q');
+      window.location.href = `/results?q=${encodeURIComponent(q)}&mode=vsm`;
+    });
+  });
+
+  document.querySelectorAll('.inspect-trigger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const docId = btn.getAttribute('data-doc-id');
+      window.openDocModal(docId);
+    });
+  });
+
+  // Non-blocking preview on right garment card
+  async function previewSearch(q, mode) {
+    try {
+      let data;
+      if (mode === 'vsm') {
+        data = await window.apiClient.searchVSM(q, 1);
+      } else {
+        data = await window.apiClient.searchPositional(q);
+      }
+      const top = (data.results || [])[0];
+      if (!top) return;
+      document.getElementById('card-doc-id').textContent = top.doc_id || '—';
+      document.getElementById('card-product-name').textContent = top.title || '—';
+      document.getElementById('card-rank').textContent = top.rank ? `Rank #${top.rank}` : 'Match';
+      document.getElementById('card-score').textContent = top.cosine_score != null ? Number(top.cosine_score).toFixed(4) : '—';
+      document.getElementById('card-bottom-text').textContent = mode === 'vsm'
+        ? `Ranked via lnc.ltc Cosine Normalization`
+        : `Positional match — exact ${mode} constraint`;
+      const specDiv = document.getElementById('card-specs');
+      specDiv.innerHTML = `
+        <div class="card-spec">Category: <strong style="color:#fff;">${top.category || '—'}</strong></div>
+        <div class="card-spec">Score: <strong style="color:#fff;">${top.cosine_score != null ? Number(top.cosine_score).toFixed(6) : '—'}</strong></div>
+        <div class="card-spec">DocID: <strong style="color:#fff;">${top.doc_id || '—'}</strong></div>
+      `;
+    } catch(e) {}
+  }
+</script>
+{% endblock %}

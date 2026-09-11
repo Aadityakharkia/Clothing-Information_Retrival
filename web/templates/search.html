@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Clothing Search Engine{% endblock %}
+
+{% block content %}
+<div class="search-page" id="search-page">
+
+  <!-- Floating decoration shapes (like reference image) -->
+  <div class="deco-shape deco-pill-blue"></div>
+  <div class="deco-shape deco-sq-pink"></div>
+  <div class="deco-shape deco-sq-teal"></div>
+  <div class="deco-shape deco-sq-purple"></div>
+  <div class="deco-badge-ir">IR</div>
+
+  <div class="search-page-inner">
+
+    <!-- LEFT: Giant headline + search bar -->
+    <div class="hero-left">
+
+      <div class="hero-badge">
+        Ranked retrieval with VSM &amp; Positional Index
+      </div>
+
+      <h1 class="hero-headline">
+        <span class="hl-line1">CLOTHING<span class="hl-accent-sq"></span></span>
+        <span class="hl-line2">search</span>
+        <span class="hl-line3">engine</span>
+      </h1>
+
+      <!-- Search form -->
+      <form class="search-pill-wrap" id="search-form" action="/results" method="GET">
+        <div class="search-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            name="q"
+            id="main-search-input"
+            placeholder="Search for a garment, fabric, fit, or exact phrase…"
+            value=""
+            autocomplete="off"
+            aria-label="Search query"
+          >
+          <button type="submit" class="search-btn" id="main-search-btn">Search</button>
+        </div>
+
+        <!-- Mode selector -->
+        <div class="mode-selector" id="mode-selector">
+          <button type="button" class="mode-chip active" data-mode="vsm" id="mode-vsm">VSM Free-text</button>
+          <button type="button" class="mode-chip" data-mode="phrase" id="mode-phrase">&ldquo;Exact Phrase&rdquo;</button>
+          <button type="button" class="mode-chip" data-mode="proximity" id="mode-prox">WITHIN/k Proximity</button>
+        </div>
+        <input type="hidden" name="mode" id="mode-hidden" value="vsm">
+      </form>
+
+      <!-- Sample query chips -->
+      <div class="sample-qs" id="sample-qs" style="margin-top:14px;">
+        <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-right:4px;">Try:</span>
+        <button class="sample-q" data-q="breathable cotton t-shirt" data-mode="vsm">breathable cotton t-shirt</button>
+        <button class="sample-q" data-q="black slim fit casual shirt" data-mode="vsm">black slim fit shirt</button>
+        <button class="sample-q" data-q="stretch denim jeans grey" data-mode="vsm">stretch denim jeans</button>
+        <button class="sample-q" data-q="winter warm hoodie women" data-mode="vsm">warm winter hoodie</button>
+        <button class="sample-q phrase-q" data-q="cotton shirt" data-mode="phrase">&ldquo;cotton shirt&rdquo;</button>
+        <button class="sample-q phrase-q" data-q="stretch denim" data-mode="phrase">&ldquo;stretch denim&rdquo;</button>
+        <button class="sample-q prox-q" data-q="winter WITHIN/3 wear" data-mode="proximity">winter WITHIN/3 wear</button>
+        <button class="sample-q prox-q" data-q="festive WITHIN/4 kurta" data-mode="proximity">festive WITHIN/4 kurta</button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Garment Hero Card (dark gradient, like reference image) -->
+    <div class="hero-right">
+      <div class="garment-hero-card" id="garment-hero-card">
+        <div class="card-glow-tr"></div>
+        <div class="card-glow-bl"></div>
+        <div class="card-z">
+
+          <div class="card-top-row">
+            <div class="card-label-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>
+              </svg>
+              GARMENT CARD
+            </div>
+            <span class="card-id-pill" id="card-doc-id">D001</span>
+          </div>
+
+          <h2 class="card-product-name" id="card-product-name">Men's Cotton Crew Neck T-Shirt — Black</h2>
+
+          <div class="card-specs" id="card-specs">
+            <div class="card-spec">Category: <strong style="color:#fff;">T-Shirt</strong></div>
+            <div class="card-spec">Fabric: <strong style="color:#fff;">100% Cotton, Breathable</strong></div>
+            <div class="card-spec">Care: <strong style="color:#fff;">Machine Washable</strong></div>
+          </div>
+
+          <div class="card-divider"></div>
+
+          <span class="card-metrics-label">RETRIEVAL METRICS</span>
+          <div class="card-metrics-row">
+            <div class="card-metric">
+              <span class="card-metric-val" id="card-rank">Rank #1</span>
+              <span class="card-metric-lbl">lnc.ltc rank</span>
+            </div>
+            <div class="card-metric">
+              <span class="card-metric-val" id="card-score">—</span>
+              <span class="card-metric-lbl">cosine score</span>
+            </div>
+          </div>
+
+          <div class="card-bottom" id="card-bottom-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/>
+            </svg>
+            <span id="card-bottom-text">Ready to search — enter a query above</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Mode chip selection
+  const modeChips = document.querySelectorAll('.mode-chip');
+  const modeHidden = document.getElementById('mode-hidden');
+  const searchInput = document.getElementById('main-search-input');
+
+  modeChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      modeChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      modeHidden.value = chip.getAttribute('data-mode');
+    });
+  });
+
+  // Sample query chips
+  document.querySelectorAll('.sample-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q    = btn.getAttribute('data-q');
+      const mode = btn.getAttribute('data-mode');
+      searchInput.value = q;
+      modeChips.forEach(c => c.classList.remove('active'));
+      const matchChip = document.querySelector(`.mode-chip[data-mode="${mode}"]`);
+      if (matchChip) matchChip.classList.add('active');
+      modeHidden.value = mode;
+      // Quick preview on hero card
+      previewSearch(q, mode);
+    });
+  });
+
+  // Hero card preview (non-blocking)
+  async function previewSearch(q, mode) {
+    try {
+      let url = '';
+      if (mode === 'vsm') url = `/api/search/vsm?q=${encodeURIComponent(q)}&top_k=1`;
+      else url = `/api/search/positional?q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const top = (data.results || [])[0];
+      if (!top) return;
+      document.getElementById('card-doc-id').textContent    = top.doc_id || '—';
+      document.getElementById('card-product-name').textContent = top.title || '—';
+      document.getElementById('card-rank').textContent      = top.rank ? `Rank #${top.rank}` : 'Match';
+      document.getElementById('card-score').textContent     = top.cosine_score != null ? top.cosine_score.toFixed(4) : '—';
+      document.getElementById('card-bottom-text').textContent = mode === 'vsm'
+        ? `Ranked via lnc.ltc Cosine Normalization`
+        : `Positional match — exact ${mode} constraint`;
+      const specDiv = document.getElementById('card-specs');
+      specDiv.innerHTML = `
+        <div class="card-spec">Category: <strong style="color:#fff;">${top.category || '—'}</strong></div>
+        <div class="card-spec">Score: <strong style="color:#fff;">${top.cosine_score != null ? top.cosine_score.toFixed(6) : '—'}</strong></div>
+        <div class="card-spec">DocID: <strong style="color:#fff;">${top.doc_id || '—'}</strong></div>
+      `;
+    } catch(e) {}
+  }
+</script>
+{% endblock %}
