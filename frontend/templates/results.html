@@ -38,7 +38,37 @@
             <button class="mode-chip {% if mode=='vsm' %}active{% endif %}" data-mode="vsm" id="sb-mode-vsm">VSM</button>
             <button class="mode-chip {% if mode=='phrase' %}active{% endif %}" data-mode="phrase" id="sb-mode-phrase">Phrase</button>
             <button class="mode-chip {% if mode=='proximity' %}active{% endif %}" data-mode="proximity" id="sb-mode-prox">Proximity</button>
+            <button class="mode-chip {% if mode=='semantic' %}active{% endif %}" data-mode="semantic" id="sb-mode-semantic">✦ Semantic</button>
           </div>
+        </div>
+
+        <!-- Semantic AI Innovations (Idea 4) -->
+        <div class="sidebar-section" id="semantic-innovations" {% if mode != 'semantic' %}style="display:none;"{% endif %}>
+          <span class="sidebar-heading">Neural IR Controls (Idea 4)</span>
+
+          <div style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:0.75rem; color:var(--text-muted);">Intent Analysis</span>
+              <span class="badge" id="sem-intent-badge" style="background:rgba(180,120,255,0.15); color:#d4b4ff; font-size:0.7rem; padding:2px 6px; border-radius:4px;">Natural Language</span>
+            </div>
+            <div style="font-size:0.7rem; color:var(--text-muted); line-height:1.3;" id="sem-intent-desc">
+              Model: <code style="color:#d4b4ff;">all-MiniLM-L6-v2</code> (384-dim dense embeddings)
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px;">
+              <label for="sem-alpha-slider">Hybrid Balance (&alpha;)</label>
+              <span id="sem-alpha-val" style="font-weight:600; color:var(--accent);">0.50</span>
+            </div>
+            <input type="range" id="sem-alpha-slider" min="0" max="1" step="0.05" value="0.5" style="width:100%; accent-color:var(--accent);">
+            <div style="display:flex; justify-content:space-between; font-size:0.65rem; color:var(--text-muted); margin-top:2px;">
+              <span>0.0 (Lexical VSM)</span>
+              <span>1.0 (Dense Semantic)</span>
+            </div>
+          </div>
+
+          <button class="sidebar-action-btn primary" id="sem-apply-alpha-btn" style="margin-top:0;">Re-rank with &alpha;</button>
         </div>
 
         <!-- IR Innovations -->
@@ -167,6 +197,23 @@ async function doSearch(q, mode) {
       } else {
         data = await window.apiClient.searchVSM(q, 10);
       }
+    } else if (mode === 'semantic') {
+      const alphaSlider = document.getElementById('sem-alpha-slider');
+      const alpha = alphaSlider ? parseFloat(alphaSlider.value) : 0.5;
+      data = await window.apiClient.searchSemantic(q, 'hybrid', alpha, 10);
+
+      const intentBadge = document.getElementById('sem-intent-badge');
+      if (intentBadge && data.is_natural_language !== undefined) {
+        if (data.is_natural_language) {
+          intentBadge.textContent = 'Natural Language';
+          intentBadge.style.background = 'rgba(180,120,255,0.2)';
+          intentBadge.style.color = '#d4b4ff';
+        } else {
+          intentBadge.textContent = 'Keyword Query';
+          intentBadge.style.background = 'rgba(100,160,255,0.2)';
+          intentBadge.style.color = '#a0c4ff';
+        }
+      }
     } else {
       data = await window.apiClient.searchPositional(q);
     }
@@ -176,9 +223,14 @@ async function doSearch(q, mode) {
   }
 
   const results = data.results || [];
-  const modeLabel = mode === 'vsm'
-    ? (proximityBoostActive ? 'Hybrid Proximity Boost' : 'VSM lnc.ltc')
-    : (data.search_type === 'exact_phrase' ? 'Exact Phrase' : 'Proximity WITHIN/k');
+  let modeLabel = 'VSM lnc.ltc';
+  if (mode === 'semantic') {
+    modeLabel = '✦ Semantic AI (MiniLM)';
+  } else if (mode === 'vsm') {
+    modeLabel = proximityBoostActive ? 'Hybrid Proximity Boost' : 'VSM lnc.ltc';
+  } else {
+    modeLabel = data.search_type === 'exact_phrase' ? 'Exact Phrase' : 'Proximity WITHIN/k';
+  }
 
   document.getElementById('results-count-label').textContent =
     `${results.length} garment${results.length !== 1 ? 's' : ''} found`;
@@ -194,8 +246,12 @@ async function doSearch(q, mode) {
   const queryTerms = q.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
 
   list.innerHTML = results.map((item, idx) => {
-    const score = item.hybrid_score != null ? item.hybrid_score : item.cosine_score;
+    const score = item.combined_score != null ? item.combined_score : (item.hybrid_score != null ? item.hybrid_score : item.cosine_score);
     const scoreStr = score != null ? Number(score).toFixed(4) : '—';
+    const scoreLbl = mode === 'semantic'
+      ? (item.lexical_score != null ? `blended (&alpha;=${item.alpha || 0.5})` : 'semantic sim')
+      : (mode === 'vsm' ? 'cosine score' : 'match score');
+
     const icon = getIcon(item.category);
     const snippet = highlightText(item.text, queryTerms);
 
@@ -205,13 +261,21 @@ async function doSearch(q, mode) {
     } else if (item.matched_pairs) {
       const pairs = item.matched_pairs.map(p => `(${p[0]},${p[1]},dist=${p[2]})`).join(', ');
       evidenceHtml = `<div class="pos-evidence">✓ Proximity pairs: [${pairs}]</div>`;
+    } else if (mode === 'semantic' && item.semantic_score != null) {
+      evidenceHtml = `
+        <div class="pos-evidence" style="border-color:rgba(180,120,255,0.3);background:rgba(180,120,255,0.06);color:#d4b4ff;">
+          ✦ Dense Sim: <b>${item.semantic_score}</b>
+          ${item.lexical_score != null ? ` | Lexical VSM: <b>${item.lexical_score}</b>` : ''}
+          | 384-dim all-MiniLM-L6-v2
+        </div>
+      `;
     }
 
     const boostHtml = item.boost_factor != null
       ? `<span class="score-boost">×${Number(item.boost_factor).toFixed(2)} boost</span>` : '';
 
     return `
-      <div class="result-card ${idx === 0 ? 'rank-1' : ''} ${mode !== 'vsm' ? 'positional' : ''}">
+      <div class="result-card ${idx === 0 ? 'rank-1' : ''} ${mode === 'semantic' ? 'semantic' : (mode !== 'vsm' ? 'positional' : '')}">
         <div class="rank-col">${item.rank != null ? item.rank : idx+1}</div>
         <div class="icon-col">${icon}</div>
         <div class="main-col">
@@ -231,8 +295,8 @@ async function doSearch(q, mode) {
           </div>
         </div>
         <div class="score-col">
-          <span class="score-val">${scoreStr}</span>
-          <span class="score-lbl">cosine score</span>
+          <span class="score-val" ${mode==='semantic' ? 'style="color:var(--accent);"' : ''}>${scoreStr}</span>
+          <span class="score-lbl">${scoreLbl}</span>
           ${boostHtml}
         </div>
       </div>
@@ -262,10 +326,31 @@ document.querySelectorAll('.mode-chip').forEach(chip => {
     document.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     currentMode = chip.getAttribute('data-mode');
+
     const vsm = document.getElementById('vsm-innovations');
     if (vsm) vsm.style.display = currentMode === 'vsm' ? '' : 'none';
+
+    const sem = document.getElementById('semantic-innovations');
+    if (sem) sem.style.display = currentMode === 'semantic' ? '' : 'none';
+
+    doSearch(document.getElementById('sidebar-query-input').value.trim() || QUERY, currentMode);
   });
 });
+
+// ── Semantic Alpha Slider Controls ───────────────────
+const alphaSlider = document.getElementById('sem-alpha-slider');
+const alphaVal = document.getElementById('sem-alpha-val');
+if (alphaSlider && alphaVal) {
+  alphaSlider.addEventListener('input', () => {
+    alphaVal.textContent = parseFloat(alphaSlider.value).toFixed(2);
+  });
+}
+const semApplyBtn = document.getElementById('sem-apply-alpha-btn');
+if (semApplyBtn) {
+  semApplyBtn.addEventListener('click', () => {
+    doSearch(document.getElementById('sidebar-query-input').value.trim() || QUERY, 'semantic');
+  });
+}
 
 // ── Sidebar search ───────────────────────────────────
 document.getElementById('sidebar-search-btn').addEventListener('click', () => {

@@ -854,6 +854,12 @@ html, body {
   box-shadow: var(--shadow-md);
 }
 .result-card.positional { border-left: 3px solid var(--pink); }
+.result-card.semantic { border-left: 3px solid #a855f7; }
+.score-pill.score-semantic {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
 
 .rank-col {
   font-family: var(--font-display);

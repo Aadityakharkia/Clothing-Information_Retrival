@@ -45,10 +45,30 @@ class ResultsPageController {
           if (vsmInnovations) {
             vsmInnovations.style.display = (selectedMode === 'vsm' || selectedMode === 'hybrid') ? 'block' : 'none';
           }
+          const semInnovations = document.getElementById('semantic-innovations');
+          if (semInnovations) {
+            semInnovations.style.display = (selectedMode === 'semantic') ? 'block' : 'none';
+          }
           this.executeSearch();
         }
       });
     });
+
+    // Semantic Alpha Slider & Apply
+    const alphaSlider = document.getElementById('sem-alpha-slider');
+    const alphaVal = document.getElementById('sem-alpha-val');
+    if (alphaSlider && alphaVal) {
+      alphaSlider.addEventListener('input', () => {
+        alphaVal.textContent = parseFloat(alphaSlider.value).toFixed(2);
+      });
+    }
+
+    const semApplyBtn = document.getElementById('sem-apply-alpha-btn');
+    if (semApplyBtn) {
+      semApplyBtn.addEventListener('click', () => {
+        this.executeSearch();
+      });
+    }
 
     // Refine search input
     const sidebarInput = document.getElementById('sidebar-query-input');
@@ -124,6 +144,24 @@ class ResultsPageController {
         response = await this.apiClient.searchPositional(this.query);
       } else if (this.mode === 'proximity') {
         response = await this.apiClient.searchPositional(this.query);
+      } else if (this.mode === 'semantic') {
+        const alphaSlider = document.getElementById('sem-alpha-slider');
+        const alpha = alphaSlider ? parseFloat(alphaSlider.value) : 0.5;
+        response = await this.apiClient.searchSemantic(this.query, 'hybrid', alpha, 10);
+
+        // Update intent badge
+        const intentBadge = document.getElementById('sem-intent-badge');
+        if (intentBadge && response.is_natural_language !== undefined) {
+          if (response.is_natural_language) {
+            intentBadge.textContent = 'Natural Language';
+            intentBadge.style.background = 'rgba(180,120,255,0.2)';
+            intentBadge.style.color = '#d4b4ff';
+          } else {
+            intentBadge.textContent = 'Keyword Query';
+            intentBadge.style.background = 'rgba(100,160,255,0.2)';
+            intentBadge.style.color = '#a0c4ff';
+          }
+        }
       } else {
         // VSM or Hybrid
         if (this.isBoostActive) {

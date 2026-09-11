@@ -58,14 +58,37 @@ class ResultsView {
     results.forEach((item, idx) => {
       const rank = item.rank || (idx + 1);
       const isVSM = mode === 'vsm' || mode === 'hybrid';
-      const scoreDisplay = isVSM 
-        ? (item.hybrid_score !== undefined ? `Hybrid: ${item.hybrid_score}` : `Cosine: ${item.cosine_score || 0}`)
-        : (item.match_count ? `${item.match_count} match${item.match_count === 1 ? '' : 'es'}` : 'Matched');
+      const isSemantic = mode === 'semantic';
+
+      let scoreDisplay = '';
+      let scorePillClass = 'score-pos';
+
+      if (isSemantic) {
+        scorePillClass = 'score-semantic';
+        if (item.semantic_score !== undefined && item.lexical_score !== undefined) {
+          scoreDisplay = `Blended: ${item.combined_score}`;
+        } else {
+          scoreDisplay = `Semantic: ${item.semantic_score || item.combined_score || 0}`;
+        }
+      } else if (isVSM) {
+        scorePillClass = 'score-vsm';
+        scoreDisplay = (item.hybrid_score !== undefined ? `Hybrid: ${item.hybrid_score}` : `Cosine: ${item.cosine_score || 0}`);
+      } else {
+        scoreDisplay = item.match_count ? `${item.match_count} match${item.match_count === 1 ? '' : 'es'}` : 'Matched';
+      }
 
       const isBoosted = item.boost_factor && item.boost_factor > 1.0;
       const boostBadge = isBoosted 
         ? `<span class="score-pill score-boost" title="Span: ${item.shortest_span}">▲ +${Math.round((item.boost_factor - 1) * 100)}% Boost</span>`
         : '';
+
+      const semanticDetails = isSemantic && item.semantic_score !== undefined ? `
+        <div class="rc-terms" style="margin-top:6px;">
+          <span class="contrib-chip" style="border-color:rgba(180,120,255,0.3);color:#d4b4ff;">Dense Sim: ${item.semantic_score}</span>
+          ${item.lexical_score !== undefined ? `<span class="contrib-chip">Lexical VSM: ${item.lexical_score}</span>` : ''}
+          ${item.alpha !== undefined ? `<span class="contrib-chip">&alpha;: ${item.alpha}</span>` : ''}
+        </div>
+      ` : '';
 
       const termChips = Object.entries(item.term_contributions || {})
         .slice(0, 5)
@@ -82,7 +105,7 @@ class ResultsView {
             </div>
             <div class="rc-actions">
               ${boostBadge}
-              <span class="score-pill ${isVSM ? 'score-vsm' : 'score-pos'}">${scoreDisplay}</span>
+              <span class="score-pill ${scorePillClass}">${scoreDisplay}</span>
               <button class="inspect-btn" data-doc-id="${item.doc_id}" title="Inspect Document Vectors & Postings">
                 Inspect
               </button>
@@ -90,6 +113,7 @@ class ResultsView {
           </div>
           <h2 class="rc-title">${item.title}</h2>
           <p class="rc-desc">${(item.text || '').substring(0, 240)}…</p>
+          ${semanticDetails}
           ${termChips ? `<div class="rc-terms">${termChips}</div>` : ''}
           ${mode === 'vsm' ? `
             <div class="rc-foot">
