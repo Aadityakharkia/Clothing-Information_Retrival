@@ -1,154 +1,146 @@
 # Architecture & System Steering Document
 ## Clothing Information Retrieval Engine (CSD358)
-**Lead Architect & Senior Engineering Steering Guidelines**
 
 ---
 
-## 1. System Vision & Architecture Principles
+## 1. System Overview
 
-The **Clothing Information Retrieval Engine** is an enterprise-grade Information Retrieval research and production platform built strictly on classic and advanced IR algorithms (lnc.ltc Vector Space Model, Positional Inverted Indexing, Phrase / Proximity verification, Hybrid Proximity Boosting, Rocchio Relevance Feedback, and Positional Intersection Tracing).
+The **Clothing Information Retrieval Engine** is a full-stack Flask web application implementing classic and advanced IR algorithms against a 100-document clothing product corpus.
 
-### Core Architectural Tenets:
-1. **Clean Layered Separation (Clean Architecture / MVC)**:
-   - **Frontend (Presentation Tier)**: Pure decoupled client layer. Router handles URL history and view switching. Controllers orchestrate asynchronous API fetching and state management. Views execute atomic, deterministic DOM rendering.
-   - **Backend (API & Application Tier)**: Flask application factory with Blueprint routing. HTTP concerns terminate at Controllers. Business IR operations are purely encapsulated in stateless/singleton Services. Typed data contracts are guaranteed by Models.
-   - **Data Tier**: Inverted index, positional index, and corpus files strictly separated from runtime logic.
-2. **Request Tokenization & Full Observability**:
-   - Every incoming HTTP request (page or API) is stamped with a unique monotonic/UUID tracing token: `REQ-XXXXXX`.
-   - The token is propagated across headers (`X-Request-Token`), injected into Flask `g`, and logged into `output/request_log.jsonl` with latency, IP, method, and query parameters.
-   - The frontend API client extracts and tracks this token for end-to-end auditability and debugging.
-3. **Algorithmic Purity & Immutability**:
-   - Standard IR formulations (Porter Stemmer, TF-IDF lnc.ltc, positional lists) remain intact with zero synthetic/AI dependencies.
+**IR Algorithms:** lnc.ltc Vector Space Model · Positional Inverted Indexing · Phrase Search · Proximity Verification · Hybrid Proximity Boosting · Rocchio Relevance Feedback · Semantic Search (sentence-transformers)
 
 ---
 
-## 2. Directory Hierarchy
+## 2. Architectural Principles
+
+### Clean Layered Separation (MVC / Clean Architecture)
+
+| Layer | Responsibility |
+|---|---|
+| **Frontend — Views** | Pure DOM rendering (`views/*.view.js`). Zero business logic. |
+| **Frontend — Controllers** | Event handling, API calls, state management (`controllers/*.controller.js`). Zero DOM code. |
+| **Backend — Routes** | HTTP parameter parsing only. Immediately delegates to Controllers. No logic. |
+| **Backend — Controllers** | Orchestrates service calls, composes response payloads. |
+| **Backend — Services** | Pure Python IR algorithms. Framework-agnostic. Singleton-cached. |
+| **Backend — Models** | Typed data contracts: `Document`, `Query`, `RequestTrace`. |
+| **Data** | Corpus file and runtime index artifacts. Strictly separated from application logic. |
+
+### Request Tokenization & Observability
+Every HTTP request is stamped with a unique token (`REQ-<HEX6>`), stored in Flask `g`, returned in response headers (`X-Request-Token`, `X-Response-Time-Ms`), and appended to `output/request_log.jsonl`.
+
+---
+
+## 3. Directory Structure
 
 ```
 Clothing-Information_Retrival/
 │
-├── ARCHITECTURE.md                  ← Steering file (Always consult before modifications)
-├── pytest.ini                       ← Pytest configuration
-├── README.md                        ← Project overview & runbook
+├── package.json                    ← npm run dev / start / setup
+├── requirements.txt                ← Python dependencies
+├── README.md                       ← Runbook & API reference
+├── ARCHITECTURE.md                 ← This file
 │
-├── backend/                         ← All Server-side Python logic
-│   ├── server.py                    ← Application runner & CLI entry point
-│   ├── config.py                    ← Environment configuration (Dev/Prod/Test)
+├── backend/                        ← All server-side Python
+│   ├── server.py                   ← Application entry point
+│   ├── config.py                   ← Dev / Prod / Test configuration
 │   │
-│   ├── app/                         ← Core Flask Application Factory
-│   │   ├── __init__.py              ← create_app() factory
-│   │   │
-│   │   ├── middleware/              ← Request lifecycle & Cross-cutting concerns
-│   │   │   ├── __init__.py
-│   │   │   ├── request_tracker.py   ← Request tokenization & JSONL telemetry logger
-│   │   │   └── error_handler.py     ← RFC 7807 compliant error handler
-│   │   │
-│   │   ├── models/                  ← Typed data structures & contracts
-│   │   │   ├── __init__.py
-│   │   │   ├── document.py          ← Document entity model
-│   │   │   ├── query.py             ← Query request/response payloads
-│   │   │   └── request_token.py     ← Trace context model
-│   │   │
-│   │   ├── routes/                  ← Flask Blueprints (Routing only)
-│   │   │   ├── __init__.py
-│   │   │   ├── page_routes.py       ← Jinja2 Page templates routing (/, /results, /tracer...)
-│   │   │   └── api_routes.py        ← REST API endpoints (/api/*)
-│   │   │
-│   │   ├── controllers/             ← Controller layer (Input parsing, orchestration)
-│   │   │   ├── __init__.py
-│   │   │   ├── search_controller.py ← VSM & Positional phrase search orchestration
-│   │   │   ├── tracer_controller.py ← Inverted index step-by-step trace runner
-│   │   │   ├── feedback_controller.py← Rocchio PRF algorithm orchestration
-│   │   │   ├── tests_controller.py  ← Assignment Part E test runner API
-│   │   │   └── vocab_controller.py  ← Vocabulary dictionary & postings inspection
-│   │   │
-│   │   └── services/                ← Domain IR Engine (Pure Python, Framework Agnostic)
-│   │       ├── __init__.py
-│   │       ├── preprocessor.py      ← Tokenization, case folding, stopwords, Porter Stemmer
-│   │       ├── indexer.py           ← ClothingCorpusIndex (Inverted & Positional builder)
-│   │       ├── vsm_service.py       ← lnc.ltc Vector Space Model scoring
-│   │       ├── positional_service.py← Exact phrase & ordered proximity (WITHIN/k) search
-│   │       └── advanced_ir.py       ← Hybrid proximity boost, Positional Tracer, Rocchio PRF
-│   │
-│   └── scripts/                     ← Standalone DevOps / IR CLI scripts
-│       ├── build_index.py           ← Corpus index compilation script
-│       ├── run_tests.py             ← CLI test suite runner
-│       └── export.py                ← Packaging & deliverables bundle generator
+│   └── app/                        ← Flask Application Factory
+│       ├── __init__.py             ← create_app()
+│       │
+│       ├── middleware/             ← Cross-cutting concerns
+│       │   ├── __init__.py
+│       │   ├── request_tracker.py  ← Token generation & JSONL audit log
+│       │   └── error_handler.py    ← RFC 7807 structured error responses
+│       │
+│       ├── models/                 ← Typed data contracts
+│       │   ├── __init__.py
+│       │   ├── document.py         ← Document entity
+│       │   ├── query.py            ← Query request/response shapes
+│       │   └── request_token.py    ← Trace context model
+│       │
+│       ├── routes/                 ← Blueprint routing (no logic)
+│       │   ├── __init__.py
+│       │   ├── page_routes.py      ← /  /results  /tracer  /vocabulary
+│       │   └── api_routes.py       ← /api/*
+│       │
+│       ├── controllers/            ← Orchestration layer
+│       │   ├── __init__.py
+│       │   ├── search_controller.py   ← VSM, positional, hybrid search
+│       │   ├── semantic_controller.py ← Semantic search
+│       │   ├── tracer_controller.py   ← Positional intersection tracer
+│       │   ├── feedback_controller.py ← Rocchio PRF
+│       │   └── vocab_controller.py    ← Vocabulary & postings inspection
+│       │
+│       └── services/               ← Domain IR engine (framework-agnostic)
+│           ├── __init__.py         ← Singleton IR system factory: get_ir_system()
+│           ├── preprocessor.py     ← Tokenization, stop-words, Porter Stemmer
+│           ├── indexer.py          ← ClothingCorpusIndex (inverted + positional)
+│           ├── vsm_service.py      ← lnc.ltc VSM scoring & cosine similarity
+│           ├── positional_service.py ← Phrase & ordered proximity search
+│           ├── advanced_ir.py      ← Hybrid boost, tracer, Rocchio PRF
+│           └── semantic_service.py ← Sentence-transformer semantic search
 │
-├── frontend/                        ← Client-side Presentation Tier
-│   ├── templates/                   ← Jinja2 Multi-page templates
-│   │   ├── base.html                ← Master layout with header/nav/footer
-│   │   ├── search.html              ← Home search page (Syne aesthetic)
-│   │   ├── results.html             ← Search results & ranking comparison
-│   │   ├── tracer.html              ← Positional intersection step tracer
-│   │   ├── tests.html               ← Part E automated test results view
-│   │   └── index_explorer.html      ← Vocabulary & postings table
+├── frontend/                       ← Client-side Presentation Tier
+│   ├── templates/                  ← Jinja2 multi-page templates
+│   │   ├── base.html               ← Master layout: nav, footer, modal, core JS
+│   │   ├── search.html             ← Home search page
+│   │   ├── results.html            ← Ranked results + Rocchio feedback
+│   │   ├── tracer.html             ← Positional intersection tracer
+│   │   └── index_explorer.html     ← Vocabulary & postings table
 │   │
 │   └── static/
 │       ├── css/
-│       │   └── style.css            ← Curated premium styling & typography
+│       │   └── style.css           ← Design system & all component styles
 │       └── js/
-│           ├── core/                ← Framework core
-│           │   ├── router.js        ← Client router & navigation manager
-│           │   ├── api-client.js    ← Centralized Fetch client with token injection
-│           │   └── app-state.js     ← Reactive state store
-│           │
-│           ├── controllers/         ← Frontend Page Controllers
+│           ├── core/               ← Framework primitives
+│           │   ├── api-client.js   ← Fetch wrapper with token injection
+│           │   ├── app-state.js    ← Reactive state store
+│           │   └── router.js       ← Client-side URL manager
+│           ├── controllers/        ← Page event handlers & API orchestration
 │           │   ├── search.controller.js
 │           │   ├── results.controller.js
 │           │   ├── tracer.controller.js
-│           │   ├── tests.controller.js
 │           │   └── vocab.controller.js
-│           │
-│           └── views/               ← Frontend DOM Views (Pure Rendering)
+│           └── views/              ← Pure DOM rendering (no API calls)
 │               ├── search.view.js
 │               ├── results.view.js
 │               ├── tracer.view.js
-│               ├── tests.view.js
 │               └── vocab.view.js
 │
 ├── data/
-│   └── corpus.txt                   ← Raw documents corpus (D001-D100)
-├── output/                          ← Index artifacts & request audit log
-│   ├── inverted_index.json
-│   ├── positional_index.json
-│   └── request_log.jsonl            ← Request tokenization trace stream
-├── tests/                           ← Automated pytest suite
-│   └── test_ir_engine.py
-└── src/                             ← Backward-compatibility facade for tests
+│   └── corpus.txt                  ← Raw corpus: 100 clothing documents (D001–D100)
+│
+└── output/                         ← Runtime artifacts (auto-generated, gitignored)
+    ├── inverted_index.json         ← Serialized inverted index
+    ├── positional_index.json       ← Serialized positional index
+    ├── semantic_index.pkl          ← Pre-computed sentence embeddings
+    └── request_log.jsonl           ← Structured request audit trail
 ```
 
 ---
 
-## 3. Request Tokenization & Telemetry Specification
+## 4. Request Flow
 
-Every request through the system passes through the `RequestTrackerMiddleware`:
-
-1. **Token Generation**: Format `REQ-<HEX6>` (e.g. `REQ-8B4E1F`).
-2. **Context Binding**: Stored in Flask `flask.g.request_token` and `flask.g.start_time`.
-3. **Response Headers**:
-   - `X-Request-Token`: The unique token identifier.
-   - `X-Response-Time-Ms`: Execution duration in milliseconds.
-4. **Structured Audit Log**:
-   Appended atomically to `output/request_log.jsonl`:
-   ```json
-   {
-     "token": "REQ-8B4E1F",
-     "timestamp": "2026-09-11T12:30:00.123Z",
-     "method": "GET",
-     "path": "/api/search/vsm",
-     "query": "cotton crew neck",
-     "status": 200,
-     "duration_ms": 8.4,
-     "client_ip": "127.0.0.1"
-   }
-   ```
-5. **Client Correlation**:
-   The frontend `ApiClient` stores the token and displays it in debug toolbars, console logs, and tracer panels so developers can immediately link a UI query to its exact backend server execution record.
+```
+Browser → Flask Router (Blueprint)
+              │
+              ▼
+         Controller (parse args, orchestrate)
+              │
+              ▼
+         Service (pure IR algorithm)
+              │
+              ▼
+         JSON Response → Frontend Controller → View (DOM render)
+```
 
 ---
 
-## 4. Coding Standards & Maintenance Protocol
-1. **Never bypass Controllers**: Blueprints MUST only parse query parameters/bodies and invoke the respective controller.
-2. **Never mix DOM manipulation into Controllers**: Frontend controllers only handle state and events; DOM manipulation must strictly live in `views/*.view.js`.
-3. **Deterministic IR Outputs**: Inverted and positional indices must produce deterministic ordering with doc_id tie-breaking.
+## 5. Coding Standards
+
+1. **Blueprints only route.** Parse parameters and call a controller. Nothing else.
+2. **Controllers only orchestrate.** Call services, build response dicts. No SQL, no DOM, no raw math.
+3. **Services are pure.** No Flask imports, no `request`, no `g`. Accept plain Python types, return plain Python types.
+4. **Views only render.** Frontend `views/*.view.js` files accept data and write HTML. Zero fetch/API calls.
+5. **Controllers handle events.** Frontend `controllers/*.controller.js` call the API client and pass data to views.
+6. **Deterministic outputs.** Index postings are sorted by `doc_id` for reproducibility.
