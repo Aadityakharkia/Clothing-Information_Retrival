@@ -4,32 +4,14 @@
 {% block content %}
 <div class="search-page" id="search-page">
 
-  <!-- Floating decoration shapes (matching reference image) -->
-  <div class="deco-shape deco-sq-pink" style="top:26%; left:38%;">100%</div>
-  <div class="deco-shape deco-sq-teal" style="bottom:22%; right:52%;">✦</div>
-  <div class="deco-shape deco-sq-purple" style="top:18%; right:44%;">IR</div>
-  <div class="deco-button-3d" title="3D Garment Accent"></div>
-
   <!-- MAIN WRAPPER -->
   <div style="width:100%; position:relative; z-index:2;">
-
-    <!-- Top Feature Line Bar (Exact Reference Match) -->
-    <div class="top-feature-bar">
-      <div class="top-feature-icon">IR</div>
-      <span class="top-feature-text">Key features</span>
-      <div class="top-feature-line"></div>
-      <span class="top-feature-star">✦</span>
-    </div>
 
     <!-- HERO GRID -->
     <div class="search-page-inner">
 
       <!-- LEFT: Hero Headline & Search -->
       <div class="hero-left">
-
-        <div class="hero-badge">
-          Powerful tool for clothing retrieval
-        </div>
 
         <h1 class="hero-headline">
           <span class="hl-line1">Clothing <span class="hl-accent-sq">IR</span></span>
@@ -55,7 +37,7 @@
             <button type="submit" class="search-btn" id="main-search-btn">Search</button>
           </div>
 
-          <!-- Mode selector chips -->
+          <!-- Mode selector chips (Multiselect Enabled) -->
           <div class="mode-selector" id="mode-selector">
             <button type="button" class="mode-chip active" data-mode="vsm" id="mode-vsm">VSM Free-text</button>
             <button type="button" class="mode-chip" data-mode="phrase" id="mode-phrase">&ldquo;Exact Phrase&rdquo;</button>
@@ -64,17 +46,6 @@
           </div>
           <input type="hidden" name="mode" id="mode-hidden" value="vsm">
         </form>
-
-        <!-- Sample query chips -->
-        <div class="sample-qs" id="sample-qs">
-          <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-right:4px;">Try:</span>
-          <button type="button" class="sample-q" data-q="breathable cotton t-shirt" data-mode="vsm">breathable cotton t-shirt</button>
-          <button type="button" class="sample-q" data-q="black slim fit casual shirt" data-mode="vsm">black slim fit shirt</button>
-          <button type="button" class="sample-q" data-q="stretch denim jeans grey" data-mode="vsm">stretch denim jeans</button>
-          <button type="button" class="sample-q phrase-q" data-q="cotton shirt" data-mode="phrase">&ldquo;cotton shirt&rdquo;</button>
-          <button type="button" class="sample-q prox-q" data-q="winter WITHIN/3 wear" data-mode="proximity">winter WITHIN/3 wear</button>
-          <button type="button" class="sample-q" data-q="warm insulated jacket for winter trek" data-mode="semantic" style="border-color:rgba(180,120,255,0.4);background:rgba(180,120,255,0.08);color:#d4b4ff;">✦ warm jacket for winter trek</button>
-        </div>
 
       </div>
 
@@ -136,12 +107,6 @@
 
     </div>
 
-    <!-- Bottom Year & Domain Footer (Matching Reference Image) -->
-    <div style="display:flex;justify-content:space-between;align-items:center;max-width:var(--max-w);margin:36px auto 0 auto;padding:0 48px;font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-dark);">
-      <span>2024</span>
-      <span style="color:var(--text-dark);letter-spacing:-0.01em;">clothing-ir.engine</span>
-    </div>
-
   </div>
 
 </div>
@@ -153,16 +118,28 @@
 <script src="/static/js/controllers/search.controller.js"></script>
 
 <script>
-  // Mode chip selection
+  // Mode chip multiselect
   const modeChips = document.querySelectorAll('.mode-chip');
   const modeHidden = document.getElementById('mode-hidden');
   const searchInput = document.getElementById('main-search-input');
 
+  function updateSelectedModes() {
+    const activeModes = Array.from(document.querySelectorAll('.mode-chip.active'))
+      .map(c => c.getAttribute('data-mode'));
+    if (modeHidden) {
+      modeHidden.value = activeModes.length ? activeModes.join(',') : 'vsm';
+    }
+  }
+
   modeChips.forEach(chip => {
     chip.addEventListener('click', () => {
-      modeChips.forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      if (modeHidden) modeHidden.value = chip.getAttribute('data-mode');
+      chip.classList.toggle('active');
+      // Ensure at least one mode is active
+      const activeCount = document.querySelectorAll('.mode-chip.active').length;
+      if (activeCount === 0) {
+        chip.classList.add('active');
+      }
+      updateSelectedModes();
     });
   });
 
