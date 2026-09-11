@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Test Suite — CSD358 Part E{% endblock %}
+
+{% block content %}
+<div class="inner-page" id="tests-page">
+  <div class="inner-page-inner">
+
+    <span class="page-kicker">PART E · MANDATORY ASSIGNMENT SUITE</span>
+    <h1 class="page-title">Test Suite &amp;<br>Comparative Analysis</h1>
+    <p class="page-subtitle">
+      Verifies 10 free-text VSM queries (including OOV), 5 exact phrase queries, 4 proximity queries,
+      and demonstrates cases where positional indexing changes the result set.
+    </p>
+
+    <button class="refresh-btn" id="refresh-tests-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Refresh All Tests
+    </button>
+
+    <!-- Analysis case cards -->
+    <div class="case-cards-row">
+      <div class="case-card">
+        <span class="case-num">CASE 1 · EXACT PHRASE VS VSM</span>
+        <h3>"cotton shirt" Filter</h3>
+        <p>VSM gives non-zero scores to garments where "cotton" and "shirt" appear separately. Exact phrase search requires <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:0.75rem;">pos(shirt)=pos(cotton)+1</code>, isolating genuine shirts only.</p>
+      </div>
+      <div class="case-card">
+        <span class="case-num">CASE 2 · PROXIMITY VS VSM</span>
+        <h3>winter WITHIN/3 wear</h3>
+        <p>"wear" appears across almost every Indian clothing description, so VSM scores dozens of non-winter garments. Positional <em>k=3</em> constraint restricts to genuine winter garments (Jackets, Hoodies, Sweatshirts).</p>
+      </div>
+      <div class="case-card">
+        <span class="case-num">CASE 3 · IR INNOVATION 1</span>
+        <h3>Positional Proximity Boost</h3>
+        <p>With dynamic span boost, garments where matched terms cluster within σ=2 tokens receive up to 50% ranking boost over garments where terms are scattered across 20+ tokens.</p>
+      </div>
+    </div>
+
+    <!-- Results table -->
+    <div class="table-wrap" id="test-table-wrap">
+      <div class="loading-state" style="padding:60px 20px;">
+        <div class="spinner"></div>
+        <h3>Running tests…</h3>
+        <p>Executing all mandatory Part E queries on 100-garment corpus</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function loadTests() {
+    const wrap = document.getElementById('test-table-wrap');
+    wrap.innerHTML = `<div class="loading-state" style="padding:60px 20px;"><div class="spinner"></div><h3>Running tests…</h3><p>Executing all mandatory Part E queries</p></div>`;
+    try {
+      const res  = await fetch('/api/tests');
+      const data = await res.json();
+      renderTests(data);
+    } catch(e) {
+      wrap.innerHTML = `<p style="padding:24px;color:red;">Error: ${e.message}</p>`;
+    }
+  }
+
+  function escHtml(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function typePill(t) {
+    const map = { vsm:'type-vsm', exact_phrase:'type-phrase', proximity:'type-proximity', oov:'type-oov' };
+    const labels = { vsm:'VSM', exact_phrase:'Phrase', proximity:'Proximity', oov:'OOV' };
+    return `<span class="type-pill ${map[t]||'type-vsm'}">${labels[t]||t}</span>`;
+  }
+
+  function renderTests(data) {
+    const allTests = [
+      ...(data.free_text_queries    || []).map(q => ({...q, type:'vsm'})),
+      ...(data.phrase_queries        || []).map(q => ({...q, type:'exact_phrase'})),
+      ...(data.proximity_queries     || []).map(q => ({...q, type:'proximity'})),
+      ...(data.oov_queries           || []).map(q => ({...q, type:'oov'})),
+    ];
+
+    if (!allTests.length) {
+      document.getElementById('test-table-wrap').innerHTML = `<p style="padding:24px;color:var(--text-muted);">No test data available.</p>`;
+      return;
+    }
+
+    const rows = allTests.map((t, i) => {
+      const results = t.results || [];
+      const top3 = results.slice(0,3).map(r => `<strong>${r.doc_id}</strong>${r.cosine_score!=null?' ('+r.cosine_score.toFixed(3)+')':''}`).join(', ');
+      const posInfo = results.length > 0 && results[0].matched_positions
+        ? `<span style="font-family:var(--font-mono);font-size:0.71rem;color:var(--purple);">pos: ${JSON.stringify(results[0].matched_positions)}</span>`
+        : '';
+      return `
+        <tr>
+          <td style="font-weight:700;color:var(--text-muted);font-family:var(--font-mono);font-size:0.72rem;">Q${i+1}</td>
+          <td>${typePill(t.type)}</td>
+          <td style="font-family:var(--font-mono);font-size:0.8rem;">${escHtml(t.query || t.q || '')}</td>
+          <td style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-dark);">${results.length}</td>
+          <td style="font-size:0.8rem;">${top3 || '<span style="color:var(--text-muted);">No results (OOV)</span>'}</td>
+          <td>${posInfo}</td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('test-table-wrap').innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            <th style="width:100px;">Type</th>
+            <th>Query</th>
+            <th style="width:60px;">Hits</th>
+            <th>Top 3 Results</th>
+            <th style="width:180px;">Positional Evidence</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  document.getElementById('refresh-tests-btn').addEventListener('click', loadTests);
+  loadTests();
+</script>
+{% endblock %}

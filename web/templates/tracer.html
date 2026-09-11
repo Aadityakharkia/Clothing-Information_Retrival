@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Positional Tracer{% endblock %}
+
+{% block content %}
+<div class="inner-page" id="tracer-page">
+  <div class="inner-page-inner">
+
+    <span class="page-kicker">IR INNOVATION 2 · SPECIAL IDEA</span>
+    <h1 class="page-title">Positional Intersection<br>Tracer</h1>
+    <p class="page-subtitle">
+      Step-by-step simulation of Manning's Positional Intersect algorithm (IIR Ch. 2.4).
+      Inspect pointer movements, document ID comparisons, and token distance constraints in real time.
+    </p>
+
+    <!-- Form card -->
+    <div class="tracer-form-card" id="tracer-form-card">
+      <div class="form-row">
+        <div class="form-field">
+          <label for="trace-t1">Term 1 (will be stemmed)</label>
+          <input type="text" id="trace-t1" class="form-input" value="stretch" placeholder="e.g. cotton" aria-label="Term 1">
+        </div>
+        <div class="form-field">
+          <label for="trace-t2">Term 2 (will be stemmed)</label>
+          <input type="text" id="trace-t2" class="form-input" value="denim" placeholder="e.g. shirt" aria-label="Term 2">
+        </div>
+        <div class="form-field">
+          <label for="trace-k">Distance k</label>
+          <input type="number" id="trace-k" class="form-input form-sm" value="4" min="1" max="15" aria-label="Distance k">
+        </div>
+        <button class="btn-primary" id="trace-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Trace Merge
+        </button>
+      </div>
+
+      <!-- Presets -->
+      <div class="presets-row">
+        <span class="presets-lbl">Quick presets:</span>
+        <button class="preset-chip" data-t1="stretch" data-t2="denim"  data-k="4">stretch + denim (k=4)</button>
+        <button class="preset-chip" data-t1="cotton"  data-t2="shirt"  data-k="3">cotton + shirt (k=3)</button>
+        <button class="preset-chip" data-t1="winter"  data-t2="wear"   data-k="3">winter + wear (k=3)</button>
+        <button class="preset-chip" data-t1="festive" data-t2="kurta"  data-k="4">festive + kurta (k=4)</button>
+        <button class="preset-chip" data-t1="slim"    data-t2="fit"    data-k="2">slim + fit (k=2)</button>
+      </div>
+    </div>
+
+    <!-- Two-panel output -->
+    <div class="tracer-panels" id="tracer-panels">
+
+      <!-- Execution log -->
+      <div class="panel-card">
+        <div class="panel-head">
+          <span>Execution Log</span>
+          <span class="tag-green" id="trace-match-count">Matches: 0</span>
+        </div>
+        <div class="terminal-body" id="trace-log">
+          <span class="log-info">Click "Trace Merge" to begin pointer inspection…</span>
+        </div>
+      </div>
+
+      <!-- Accepted documents -->
+      <div class="panel-card">
+        <div class="panel-head">
+          <span>Accepted Documents &amp; Evidence</span>
+        </div>
+        <div class="matches-body" id="trace-matches">
+          <p class="placeholder-hint">Matched documents with positional evidence will appear here.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Info box -->
+    <div style="background:var(--bg-white);border:1px solid var(--border);border-radius:var(--r-md);padding:20px;margin-top:22px;">
+      <span class="page-kicker" style="margin-bottom:6px;">HOW IT WORKS</span>
+      <p style="font-size:0.86rem;color:var(--text-body);line-height:1.65;max-width:720px;">
+        The positional intersection algorithm merges the postings lists of two terms using two pointers
+        <strong>p₁</strong> and <strong>p₂</strong>. For each common document ID, it checks if any position pair
+        satisfies <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);">0 &lt; pos(t₂) − pos(t₁) ≤ k</code>.
+        This guarantees exact positional evidence — not just co-occurrence — proving the postings index is used.
+      </p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const traceBtn    = document.getElementById('trace-btn');
+  const t1Input     = document.getElementById('trace-t1');
+  const t2Input     = document.getElementById('trace-t2');
+  const kInput      = document.getElementById('trace-k');
+  const logBox      = document.getElementById('trace-log');
+  const matchBox    = document.getElementById('trace-matches');
+  const matchCount  = document.getElementById('trace-match-count');
+
+  // Preset chips
+  document.querySelectorAll('.preset-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      t1Input.value = chip.getAttribute('data-t1');
+      t2Input.value = chip.getAttribute('data-t2');
+      kInput.value  = chip.getAttribute('data-k');
+      runTrace();
+    });
+  });
+
+  traceBtn.addEventListener('click', runTrace);
+  [t1Input, t2Input, kInput].forEach(el => {
+    el.addEventListener('keypress', e => { if (e.key === 'Enter') runTrace(); });
+  });
+
+  async function runTrace() {
+    const t1 = t1Input.value.trim();
+    const t2 = t2Input.value.trim();
+    const k  = parseInt(kInput.value) || 4;
+    if (!t1 || !t2) return;
+
+    logBox.innerHTML  = `<span class="log-info">Fetching postings for "${t1}" and "${t2}"…</span>`;
+    matchBox.innerHTML = `<p class="placeholder-hint">Tracing…</p>`;
+
+    try {
+      const res  = await fetch(`/api/trace?term1=${encodeURIComponent(t1)}&term2=${encodeURIComponent(t2)}&k=${k}`);
+      const data = await res.json();
+      renderLog(data);
+      renderMatches(data);
+      matchCount.textContent = `Matches: ${(data.matches || []).length}`;
+    } catch(e) {
+      logBox.innerHTML = `<span style="color:#ff6b6b;">Error: ${e.message}</span>`;
+    }
+  }
+
+  function renderLog(data) {
+    const steps = data.trace_steps || [];
+    if (!steps.length) {
+      logBox.innerHTML = `<span class="log-info">No postings found for one or both terms.</span>`;
+      return;
+    }
+    logBox.innerHTML = steps.map(s => {
+      const cls = s.type === 'MATCH' ? 'log-valid' : s.type === 'CANDIDATE' ? 'log-match' : 'log-step';
+      return `<div class="log-${s.type ? s.type.toLowerCase() : 'info'} ${cls}">${escHtml(s.message || JSON.stringify(s))}</div>`;
+    }).join('');
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function escHtml(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderMatches(data) {
+    const matches = data.matches || [];
+    if (!matches.length) {
+      matchBox.innerHTML = `<p class="placeholder-hint">No documents satisfied the positional constraint (0 &lt; pos(t₂)−pos(t₁) ≤ ${kInput.value}).</p>`;
+      return;
+    }
+    matchBox.innerHTML = matches.map(m => `
+      <div class="match-ev-card">
+        <div class="ev-id">${escHtml(m.doc_id)} — ${escHtml(m.category || '')}</div>
+        <div class="ev-title">${escHtml(m.title || '')}</div>
+        <div class="ev-pos">Positions: t₁=${JSON.stringify(m.pos1)}, t₂=${JSON.stringify(m.pos2)} | Pairs: ${JSON.stringify(m.pairs || [])}</div>
+      </div>
+    `).join('');
+  }
+
+  // Auto-run default
+  runTrace();
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Clothing Search Engine{% endblock %} | CSD358 IR</title>
+  <meta name="description" content="Premium Clothing Information Retrieval Engine — VSM lnc.ltc, Positional Indexing, Proximity Search. CSD358 Assignment 1.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ── Navigation ─────────────────────────────────── -->
+  <nav class="top-nav" id="top-nav">
+    <div class="nav-inner">
+
+      <a href="/" class="nav-logo" id="nav-logo-link">
+        <span class="logo-sq">IR</span>
+        <span class="logo-text">CLOTHING<br>SEARCH</span>
+      </a>
+
+      <div class="nav-center">
+        <span class="nav-rule"></span>
+        <div class="nav-pages">
+          <a href="/"           class="nav-link {% if active_page=='search' %}active{% endif %}" id="nav-link-search">Search</a>
+          <a href="/tracer"     class="nav-link {% if active_page=='tracer' %}active{% endif %}" id="nav-link-tracer">Tracer</a>
+          <a href="/tests"      class="nav-link {% if active_page=='tests'  %}active{% endif %}" id="nav-link-tests">Test Suite</a>
+          <a href="/vocabulary" class="nav-link {% if active_page=='vocab'  %}active{% endif %}" id="nav-link-vocab">Index</a>
+        </div>
+        <span class="nav-rule"></span>
+      </div>
+
+      <div class="nav-right">
+        <span class="nav-diamond">◆</span>
+        <span class="nav-status">
+          <span class="status-dot"></span>
+          <span>100 Docs Active</span>
+        </span>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ── Page Content ───────────────────────────────── -->
+  {% block content %}{% endblock %}
+
+  <!-- ── Footer ─────────────────────────────────────── -->
+  <footer class="page-footer">
+    <span>2024 · CSD358 Information Retrieval</span>
+    <span>lnc.ltc · 100-Doc Corpus · Porter Stemmer</span>
+  </footer>
+
+  <!-- ── Document Inspection Modal ─────────────────── -->
+  <div class="modal-overlay" id="doc-modal" style="display:none;">
+    <div class="modal-box" id="doc-modal-box">
+      <div class="modal-head">
+        <div>
+          <span style="font-family:var(--font-mono);font-size:0.72rem;font-weight:700;color:var(--text-muted);" id="modal-doc-id-badge">D001</span>
+          <h3 id="modal-title" style="margin-top:4px;">Garment Details</h3>
+        </div>
+        <button class="modal-close" id="modal-close-btn" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Shared JS ──────────────────────────────────── -->
+  <script>
+    // Modal logic (shared)
+    const modal = document.getElementById('doc-modal');
+    const modalClose = document.getElementById('modal-close-btn');
+    if (modalClose) {
+      modalClose.addEventListener('click', () => modal.style.display = 'none');
+    }
+    if (modal) {
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    }
+
+    async function openDocModal(docId) {
+      modal.style.display = 'flex';
+      document.getElementById('modal-body').innerHTML = '<div class="loading-state" style="padding:40px;"><div class="spinner"></div><p>Loading garment…</p></div>';
+      try {
+        const res = await fetch(`/api/doc/${docId}`);
+        const d = await res.json();
+        document.getElementById('modal-doc-id-badge').textContent = d.doc_id;
+        document.getElementById('modal-title').textContent = d.title;
+        const topTerms = Object.entries(d.term_frequencies || {})
+          .sort((a,b) => b[1]-a[1]).slice(0,20);
+        const tokens = (d.tokens || []).slice(0, 60);
+        document.getElementById('modal-body').innerHTML = `
+          <div class="modal-meta">
+            <strong>Category:</strong> ${d.category}<br>
+            <strong>Vector Length:</strong> ${d.vector_length}<br>
+            <strong>Unique Terms:</strong> ${Object.keys(d.term_frequencies||{}).length}
+          </div>
+          <div class="modal-section-title">Description</div>
+          <p style="font-size:0.85rem;color:var(--text-body);line-height:1.6;">${(d.text||'').substring(0,500)}…</p>
+          <div class="modal-section-title">Top Stemmed Terms (by TF)</div>
+          <div class="token-grid">
+            ${topTerms.map(([t,f]) => `<span class="token-pill">${t}<span class="pos-num">×${f}</span></span>`).join('')}
+          </div>
+          <div class="modal-section-title">Token Positions (first 60)</div>
+          <div class="token-grid">
+            ${tokens.map(tk => `<span class="token-pill">${tk.term}<span class="pos-num">[${tk.pos}]</span></span>`).join('')}
+          </div>
+        `;
+      } catch(e) {
+        document.getElementById('modal-body').innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+      }
+    }
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

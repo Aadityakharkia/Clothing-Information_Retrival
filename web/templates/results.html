@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block title %}{{ query or "Search" }} — Results{% endblock %}
+
+{% block content %}
+<div class="results-page" id="results-page">
+  <div class="results-page-inner">
+
+    <!-- Header -->
+    <div class="results-header">
+      <a href="/" class="back-link" id="back-to-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Search
+      </a>
+      <h1 class="results-title" id="results-title">
+        Results for <span class="q-highlight" id="q-display">"{{ query }}"</span>
+      </h1>
+      <div class="results-meta">
+        <span id="results-count-label">Loading…</span>
+        <span class="results-mode-badge" id="results-mode-badge">{{ mode | upper }}</span>
+      </div>
+    </div>
+
+    <!-- Layout: sidebar + results list -->
+    <div class="results-layout">
+
+      <!-- SIDEBAR -->
+      <aside class="results-sidebar" id="results-sidebar">
+
+        <!-- Re-search -->
+        <div class="sidebar-section">
+          <span class="sidebar-heading">Refine Search</span>
+          <div class="sidebar-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="sidebar-query-input" placeholder="New query…" value="{{ query }}" aria-label="Refine search query">
+            <button class="sidebar-search-btn" id="sidebar-search-btn">Go</button>
+          </div>
+          <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+            <button class="mode-chip {% if mode=='vsm' %}active{% endif %}" data-mode="vsm" id="sb-mode-vsm">VSM</button>
+            <button class="mode-chip {% if mode=='phrase' %}active{% endif %}" data-mode="phrase" id="sb-mode-phrase">Phrase</button>
+            <button class="mode-chip {% if mode=='proximity' %}active{% endif %}" data-mode="proximity" id="sb-mode-prox">Proximity</button>
+          </div>
+        </div>
+
+        <!-- IR Innovations -->
+        <div class="sidebar-section" id="vsm-innovations" {% if mode != 'vsm' %}style="display:none;"{% endif %}>
+          <span class="sidebar-heading">IR Innovations</span>
+
+          <div class="toggle-row">
+            <label for="toggle-proximity-boost">Proximity Boost (Idea 1)</label>
+            <div class="mini-sw">
+              <input type="checkbox" id="toggle-proximity-boost">
+              <div class="mini-sw-track"></div>
+            </div>
+          </div>
+
+          <button class="sidebar-action-btn" id="prf-btn" title="1-Click Pseudo-Relevance Feedback">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            1-Click PRF (Idea 3)
+          </button>
+
+          <button class="sidebar-action-btn primary" id="rocchio-btn" disabled>
+            Apply Rocchio (<span id="sel-count">0</span> selected)
+          </button>
+
+          <button class="sidebar-action-btn" id="reset-btn" style="display:none; margin-top:0;">
+            Reset Feedback
+          </button>
+
+          <!-- Expanded terms from Rocchio -->
+          <div id="exp-terms-wrap" style="display:none; margin-top:6px;">
+            <span class="sidebar-heading" style="margin-bottom:6px;">Expanded Terms:</span>
+            <div class="exp-terms" id="exp-terms-list"></div>
+          </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="sidebar-section">
+          <span class="sidebar-heading">Explore</span>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <a href="/tracer" style="font-size:0.8rem;color:var(--text-body);text-decoration:none;font-weight:500;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Positional Tracer
+            </a>
+            <a href="/tests" style="font-size:0.8rem;color:var(--text-body);text-decoration:none;font-weight:500;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+              Test Suite
+            </a>
+            <a href="/vocabulary" style="font-size:0.8rem;color:var(--text-body);text-decoration:none;font-weight:500;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+              Index Explorer
+            </a>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- RESULTS LIST -->
+      <section id="results-list-wrap">
+        <div class="results-list" id="results-list">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <h3>Searching clothing corpus…</h3>
+            <p>Ranking {{ total_docs }} garments with lnc.ltc cosine similarity</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const QUERY = {{ query | tojson }};
+const MODE  = {{ mode  | tojson }};
+const TOTAL_DOCS = {{ total_docs }};
+
+// Clothing SVG icon map
+const ICONS = {
+  'T-Shirt':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>`,
+  'Shirt':      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 4 16 2a4 4 0 0 1-8 0L4 4l-2 6 4 2V22h12V12l4-2-2-6z"/><path d="M12 2v20"/></svg>`,
+  'Jeans':      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2h16v3l-2 17h-5l-1-11-1 11H6L4 5V2z"/><path d="M4 6h16"/><path d="M12 2v6"/></svg>`,
+  'Kurta':      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2 8 2l-4 4 3 3v13h10V9l3-3-4-4z"/><path d="M12 2v7"/><path d="M10 9h4"/></svg>`,
+  'Saree':      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4c0 8 8 16 16 16"/><path d="M4 4c4 0 8 4 8 8"/><circle cx="12" cy="12" r="2"/></svg>`,
+  'Dress':      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2h6l2 5-3 15H10L7 7l2-5z"/><path d="M9 7h6"/></svg>`,
+  'Hoodie':     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v1L2 11l3 3 1-1v8h12v-8l1 1 3-3-5-3V7a5 5 0 0 0-5-5z"/><path d="M9 14h6"/></svg>`,
+  'Jacket':     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16l2 8-5 1v9H7v-9L2 12l2-8z"/><path d="M12 4v18"/></svg>`,
+  'Leggings':   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 2h14v2l-2 18h-4l-1-10-1 10H7L5 4V2z"/></svg>`,
+  'Sweatshirt': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 4 15 2H9L5 4 2 9l3 2v11h14V11l3-2-3-5z"/><path d="M9 2a3 3 0 0 0 6 0"/></svg>`
+};
+function getIcon(cat) { return ICONS[cat] || ICONS['T-Shirt']; }
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function highlightText(text, terms) {
+  if (!terms || !terms.length) return escHtml((text||'').substring(0, 200)) + '…';
+  let snippet = (text||'').substring(0, 280);
+  const escaped = escHtml(snippet);
+  let result = escaped;
+  terms.forEach(t => {
+    if (t.length < 3) return;
+    const re = new RegExp(`(${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    result = result.replace(re, '<mark>$1</mark>');
+  });
+  return result + '…';
+}
+
+// State
+let selDocs = new Set();
+let proximityBoostActive = false;
+let currentMode = MODE;
+
+// ── Fetch & Render ─────────────────────────────────
+async function doSearch(q, mode) {
+  if (!q) return;
+  const list = document.getElementById('results-list');
+  list.innerHTML = `<div class="loading-state"><div class="spinner"></div><h3>Searching…</h3><p>Ranking ${TOTAL_DOCS} garments</p></div>`;
+
+  let data;
+  try {
+    if (mode === 'vsm') {
+      const ep = proximityBoostActive
+        ? `/api/search/hybrid?q=${encodeURIComponent(q)}&lambda=0.5&top_k=10`
+        : `/api/search/vsm?q=${encodeURIComponent(q)}&top_k=10`;
+      const r = await fetch(ep); data = await r.json();
+    } else {
+      const r = await fetch(`/api/search/positional?q=${encodeURIComponent(q)}`);
+      data = await r.json();
+    }
+  } catch(e) {
+    list.innerHTML = `<div class="no-results"><h3>Error</h3><p>${e.message}</p></div>`;
+    return;
+  }
+
+  const results = data.results || [];
+  const modeLabel = mode === 'vsm'
+    ? (proximityBoostActive ? 'Hybrid Proximity Boost' : 'VSM lnc.ltc')
+    : (data.search_type === 'exact_phrase' ? 'Exact Phrase' : 'Proximity WITHIN/k');
+
+  document.getElementById('results-count-label').textContent =
+    `${results.length} garment${results.length !== 1 ? 's' : ''} found`;
+  document.getElementById('results-mode-badge').textContent = modeLabel;
+  document.getElementById('q-display').textContent = `"${q}"`;
+  document.title = `"${q}" — Results | CSD358 IR`;
+
+  if (!results.length) {
+    list.innerHTML = `<div class="no-results"><h3>No garments matched</h3><p>Query terms may be out of vocabulary or no exact positional match found in the 100-document corpus.</p></div>`;
+    return;
+  }
+
+  const queryTerms = q.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+
+  list.innerHTML = results.map((item, idx) => {
+    const score = item.hybrid_score != null ? item.hybrid_score : item.cosine_score;
+    const scoreStr = score != null ? score.toFixed(4) : '—';
+    const icon = getIcon(item.category);
+    const snippet = highlightText(item.text, queryTerms);
+
+    let evidenceHtml = '';
+    if (item.matched_positions) {
+      evidenceHtml = `<div class="pos-evidence">✓ Exact positions: ${JSON.stringify(item.matched_positions)}</div>`;
+    } else if (item.matched_pairs) {
+      const pairs = item.matched_pairs.map(p => `(${p[0]},${p[1]},dist=${p[2]})`).join(', ');
+      evidenceHtml = `<div class="pos-evidence">✓ Proximity pairs: [${pairs}]</div>`;
+    }
+
+    const boostHtml = item.boost_factor != null
+      ? `<span class="score-boost">×${item.boost_factor.toFixed(2)} boost</span>` : '';
+
+    return `
+      <div class="result-card ${idx === 0 ? 'rank-1' : ''} ${mode !== 'vsm' ? 'positional' : ''}">
+        <div class="rank-col">${item.rank != null ? item.rank : idx+1}</div>
+        <div class="icon-col">${icon}</div>
+        <div class="main-col">
+          <div class="result-meta">
+            <span class="r-doc-id">${item.doc_id}</span>
+            <span class="r-category">${escHtml(item.category)}</span>
+          </div>
+          <div class="r-title" onclick="openDocModal('${item.doc_id}')">${escHtml(item.title)}</div>
+          <div class="r-snippet">${snippet}</div>
+          ${evidenceHtml}
+          <div class="result-actions">
+            <label class="rel-label">
+              <input type="checkbox" class="rel-check" data-id="${item.doc_id}">
+              Mark Relevant
+            </label>
+            <button class="inspect-btn" onclick="openDocModal('${item.doc_id}')">Inspect details →</button>
+          </div>
+        </div>
+        <div class="score-col">
+          <span class="score-val">${scoreStr}</span>
+          <span class="score-lbl">cosine score</span>
+          ${boostHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attach relevance checkboxes
+  document.querySelectorAll('.rel-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.getAttribute('data-id');
+      cb.checked ? selDocs.add(id) : selDocs.delete(id);
+      updateRocchioBtn();
+    });
+  });
+}
+
+function updateRocchioBtn() {
+  const btn = document.getElementById('rocchio-btn');
+  const cnt = document.getElementById('sel-count');
+  cnt.textContent = selDocs.size;
+  btn.disabled = selDocs.size === 0;
+}
+
+// ── Mode chips (sidebar) ─────────────────────────────
+document.querySelectorAll('.mode-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentMode = chip.getAttribute('data-mode');
+    const vsm = document.getElementById('vsm-innovations');
+    if (vsm) vsm.style.display = currentMode === 'vsm' ? '' : 'none';
+  });
+});
+
+// ── Sidebar search ───────────────────────────────────
+document.getElementById('sidebar-search-btn').addEventListener('click', () => {
+  const q = document.getElementById('sidebar-query-input').value.trim();
+  if (q) window.location.href = `/results?q=${encodeURIComponent(q)}&mode=${currentMode}`;
+});
+document.getElementById('sidebar-query-input').addEventListener('keypress', e => {
+  if (e.key === 'Enter') document.getElementById('sidebar-search-btn').click();
+});
+
+// ── Proximity boost toggle ───────────────────────────
+document.getElementById('toggle-proximity-boost').addEventListener('change', function() {
+  proximityBoostActive = this.checked;
+  doSearch(QUERY, 'vsm');
+});
+
+// ── PRF button ───────────────────────────────────────
+document.getElementById('prf-btn').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/rocchio', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ query: QUERY, relevant_doc_ids: [], irrelevant_doc_ids: [], is_prf: true })
+    });
+    const data = await res.json();
+    showExpandedTerms(data.expanded_terms || []);
+    if (data.new_query) doSearch(data.new_query, 'vsm');
+  } catch(e) { console.error(e); }
+});
+
+// ── Rocchio feedback ─────────────────────────────────
+document.getElementById('rocchio-btn').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/rocchio', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ query: QUERY, relevant_doc_ids: [...selDocs], irrelevant_doc_ids: [], is_prf: false })
+    });
+    const data = await res.json();
+    showExpandedTerms(data.expanded_terms || []);
+    if (data.new_query) doSearch(data.new_query, 'vsm');
+    document.getElementById('reset-btn').style.display = '';
+  } catch(e) { console.error(e); }
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  selDocs.clear();
+  updateRocchioBtn();
+  document.getElementById('exp-terms-wrap').style.display = 'none';
+  document.getElementById('reset-btn').style.display = 'none';
+  doSearch(QUERY, 'vsm');
+});
+
+function showExpandedTerms(terms) {
+  const wrap = document.getElementById('exp-terms-wrap');
+  const list = document.getElementById('exp-terms-list');
+  if (!terms.length) return;
+  list.innerHTML = terms.map(t => `<span class="exp-term">${escHtml(t)}</span>`).join('');
+  wrap.style.display = '';
+}
+
+// ── Initial search ────────────────────────────────────
+doSearch(QUERY, MODE);
+</script>
+{% endblock %}
