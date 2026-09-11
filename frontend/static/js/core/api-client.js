@@ -65,6 +65,11 @@ class ApiClient {
     return this.request(`/search/hybrid?${params.toString()}`);
   }
 
+  searchSemantic(query, mode = 'hybrid', alpha = 0.5, topK = 10) {
+    const params = new URLSearchParams({ q: query, mode, alpha, top_k: topK });
+    return this.request(`/search/semantic?${params.toString()}`);
+  }
+
   traceIntersection(term1, term2, k = 4) {
     const params = new URLSearchParams({ term1, term2, k });
     return this.request(`/trace?${params.toString()}`);

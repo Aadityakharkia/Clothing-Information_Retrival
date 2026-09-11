@@ -9,6 +9,7 @@ from ..controllers import (
     handle_vsm_search,
     handle_positional_search,
     handle_hybrid_search,
+    handle_semantic_search,
     handle_trace,
     handle_rocchio_feedback,
     handle_run_tests,
@@ -52,6 +53,23 @@ def search_hybrid():
     top_k = int(request.args.get("top_k", current_app.config.get("DEFAULT_TOP_K", 10)))
     corpus_path = current_app.config["CORPUS_PATH"]
     response = handle_hybrid_search(query=q, lambda_param=lambda_param, top_k=top_k, corpus_path=corpus_path)
+    return jsonify(response)
+
+
+@api_bp.route("/search/semantic", methods=["GET"])
+def search_semantic():
+    q = request.args.get("q", "").strip()
+    mode = request.args.get("mode", "hybrid").strip().lower()
+    alpha = float(request.args.get("alpha", 0.5))
+    top_k = int(request.args.get("top_k", current_app.config.get("DEFAULT_TOP_K", 10)))
+    corpus_path = current_app.config["CORPUS_PATH"]
+    response = handle_semantic_search(
+        query=q,
+        mode=mode,
+        alpha=alpha,
+        top_k=top_k,
+        corpus_path=corpus_path
+    )
     return jsonify(response)
 
 

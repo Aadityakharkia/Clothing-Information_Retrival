@@ -60,6 +60,7 @@ def export():
         ("output/inverted_index.json", "output/inverted_index.json"),
         ("output/positional_index.txt", "output/positional_index.txt"),
         ("output/positional_index.json", "output/positional_index.json"),
+        ("output/semantic_index.pkl", "output/semantic_index.pkl"),
         ("output/test_results_report.md", "output/test_results_report.md"),
         ("ARCHITECTURE.md", "ARCHITECTURE.md"),
         ("output/request_log.jsonl", "output/request_log.jsonl"),

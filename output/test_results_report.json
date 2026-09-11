@@ -2040,11 +2040,11 @@
         "D021"
       ],
       "phrase_docs": [
-        "D082",
-        "D042",
         "D022",
+        "D042",
         "D002",
-        "D062"
+        "D062",
+        "D082"
       ],
       "explanation": "In pure VSM retrieval for 'cotton shirt', documents containing 'cotton' and 'shirt' at distant positions (for instance, D001, D011 where 'cotton' describes fabric and 'shirt' appears in t-shirt) receive high cosine scores due to bag-of-words term frequency. In contrast, Positional Exact Phrase retrieval strictly enforces pos(shirt) == pos(cotton) + 1, filtering out documents where the two terms do not occur as an uninterrupted phrase. For example, D002, D022, D042, D062, D082 ('Men's Checked Cotton Shirt') match the exact phrase, whereas documents mentioning both words in separate contexts are properly excluded."
     },
@@ -2063,26 +2063,26 @@
         "D030"
       ],
       "proximity_docs": [
-        "D080",
-        "D070",
-        "D018",
-        "D068",
-        "D040",
-        "D078",
-        "D048",
-        "D008",
+        "D020",
         "D088",
+        "D068",
+        "D100",
+        "D060",
+        "D030",
+        "D040",
+        "D070",
+        "D038",
         "D098",
         "D028",
-        "D090",
+        "D048",
         "D050",
-        "D020",
-        "D030",
-        "D100",
+        "D078",
+        "D010",
+        "D008",
         "D058",
-        "D060",
-        "D038",
-        "D010"
+        "D090",
+        "D018",
+        "D080"
       ],
       "explanation": "In VSM retrieval for 'winter wear', every document mentioning either 'winter' or 'wear' is retrieved. Because 'wear' is ubiquitous in the clothing corpus ('everyday Indian wear', 'daily wear', etc.), numerous documents (e.g. Sarees, Kurtas) obtain non-zero cosine similarity even if they have no winter association. Positional proximity search with k=3 requires 'wear' to appear within 3 tokens after 'winter', isolating genuine winter apparel mentions ('winter wear' in Jackets, Hoodies, Sweatshirts) and discarding false-positive co-occurrences."
     },

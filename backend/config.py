@@ -16,16 +16,29 @@ DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
 
+def _detect_default_port() -> int:
+    import socket
+    if "PORT" in os.environ:
+        return int(os.environ["PORT"])
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", 5000))
+            return 5000
+        except OSError:
+            return 5001
+
+
 class Config:
     """Base Configuration."""
     ENV = os.getenv("FLASK_ENV", "production")
     DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
-    PORT = int(os.getenv("PORT", 5000))
+    PORT = _detect_default_port()
     HOST = os.getenv("HOST", "127.0.0.1")
 
     # File paths
     CORPUS_PATH = os.getenv("CORPUS_PATH", str(DATA_DIR / "corpus.txt"))
     OUTPUT_PATH = os.getenv("OUTPUT_PATH", str(OUTPUT_DIR))
+    SEMANTIC_INDEX_PATH = os.getenv("SEMANTIC_INDEX_PATH", str(OUTPUT_DIR / "semantic_index.pkl"))
     REQUEST_LOG_PATH = os.getenv("REQUEST_LOG_PATH", str(OUTPUT_DIR / "request_log.jsonl"))
 
     # Frontend paths

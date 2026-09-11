@@ -31,7 +31,7 @@ def home():
 def results():
     q = request.args.get("q", "").strip()
     mode = request.args.get("mode", "vsm").strip()
-    if mode not in ("vsm", "phrase", "proximity"):
+    if mode not in ("vsm", "phrase", "proximity", "semantic"):
         mode = "vsm"
     total_docs, vocab_size = _get_stats()
     return render_template(
