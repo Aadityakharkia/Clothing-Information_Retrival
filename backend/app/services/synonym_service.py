@@ -24,12 +24,13 @@ class ClothingThesaurusService:
         "cardigan": ["sweater", "sweatshirt", "jacket"],
         "fleece": ["hoodie", "sweatshirt", "jacket", "warm"],
 
-        # Shirts & Tops
-        "shirt": ["t-shirt", "tshirt", "top", "kurta", "tunic"],
+        # Shirts & Tops (upper-body garments)
+        "shirt": ["t-shirt", "tshirt", "kurta", "top"],
         "t-shirt": ["shirt", "tee", "top"],
         "tshirt": ["shirt", "tee", "top"],
         "tee": ["t-shirt", "shirt", "top"],
-        "top": ["shirt", "t-shirt", "tunic"],
+        "top": ["shirt", "kurta", "tunic", "hoodie", "sweatshirt"],
+        "tops": ["shirt", "kurta", "tunic", "hoodie", "sweatshirt"],
         "kurta": ["tunic", "ethnic", "shirt"],
         "tunic": ["kurta", "top", "shirt"],
 
@@ -59,8 +60,29 @@ class ClothingThesaurusService:
         "winter": ["jacket", "hoodie", "sweatshirt", "fleece"]
     }
 
+    GENDER_FEMALE_TERMS: Set[str] = {
+        "women", "womens", "woman", "wmen", "wmn", "female", "ladies", "girl", "girls"
+    }
+    GENDER_MALE_TERMS: Set[str] = {
+        "men", "mens", "man", "male", "gents", "gent", "boy", "boys"
+    }
+
     def __init__(self, index: Optional[Any] = None):
         self.index = index
+
+    def detect_gender_intent(self, query: str) -> Optional[str]:
+        """
+        Detects explicit gender intent in a query ('women' vs 'men').
+        Returns 'women', 'men', or None if neutral/unspecified.
+        """
+        words = set(re.findall(r"[a-zA-Z]+", query.lower()))
+        has_female = any(w in self.GENDER_FEMALE_TERMS for w in words)
+        has_male = any(w in self.GENDER_MALE_TERMS for w in words)
+        if has_female and not has_male:
+            return "women"
+        if has_male and not has_female:
+            return "men"
+        return None
 
     def get_synonyms(self, term: str) -> List[str]:
         """Returns direct synonym list for a term if available."""

@@ -112,3 +112,49 @@ def test_handle_vsm_search_sweater():
     assert res["total_results"] > 0
     categories = [r["category"] for r in res["results"]]
     assert any(cat in ("Sweatshirt", "Hoodie") for cat in categories)
+
+
+def test_handle_vsm_search_wmen_top_no_men_apparel():
+    """
+    Critical Bug Fix Verification:
+    Searching 'wmen top' must auto-correct 'wmen' -> 'women', detect gender intent 'women',
+    and MUST NOT show Men's apparel. All returned documents must be Women's or Unisex.
+    """
+    res = handle_vsm_search("wmen top", top_k=10, corpus_path=CORPUS_PATH)
+    assert res["success"] is True
+    assert res["was_corrected"] is True
+    assert "women" in res["effective_query"].lower()
+    assert res["gender_intent"] == "women"
+    assert res["total_results"] > 0
+
+    # Ensure EVERY single returned garment is Women's (or Unisex), strictly ZERO Men's garments
+    for r in res["results"]:
+        title = r["title"]
+        assert title.startswith(("Women's", "Unisex")), f"Found Men's garment in women search: {title}"
+        assert "Men's" not in title
+
+
+def test_handle_vsm_search_men_top_no_women_apparel():
+    """
+    Searching 'men top' must detect gender intent 'men' and only return Men's or Unisex apparel.
+    """
+    res = handle_vsm_search("men top", top_k=10, corpus_path=CORPUS_PATH)
+    assert res["success"] is True
+    assert res["gender_intent"] == "men"
+    assert res["total_results"] > 0
+
+    for r in res["results"]:
+        title = r["title"]
+        assert title.startswith(("Men's", "Unisex")), f"Found Women's garment in men search: {title}"
+        assert "Women's" not in title
+
+
+def test_neutral_query_no_gender_intent():
+    """
+    Neutral queries like 'cotton shirt' should not enforce gender filtering.
+    """
+    res = handle_vsm_search("cotton shirt", top_k=10, corpus_path=CORPUS_PATH)
+    assert res["success"] is True
+    assert res["gender_intent"] is None
+    assert res["total_results"] > 0
+

@@ -37,13 +37,17 @@ def handle_vsm_search(
         "expanded_terms": []
     }
 
-    # 3. Perform VSM Retrieval
+    # 3. Detect Explicit Gender Intent ('women' vs 'men')
+    gender_intent = thesaurus.detect_gender_intent(query) or thesaurus.detect_gender_intent(effective_query)
+
+    # 4. Perform VSM Retrieval
     # If synonyms are enabled and expansions exist, pass term_weights to softly boost primary vs synonyms
+    fetch_k = max(top_k * 3, 50) if gender_intent else top_k
     if synonyms and expansion_info["has_expansions"]:
         search_query = expansion_info["expanded_query_str"]
         results = vsm.search(
             search_query,
-            top_k=top_k,
+            top_k=fetch_k,
             term_weights_override=expansion_info["term_weights"]
         )
         _, _, query_details = vsm.compute_query_weights(
@@ -51,8 +55,29 @@ def handle_vsm_search(
             term_weights_override=expansion_info["term_weights"]
         )
     else:
-        results = vsm.search(effective_query, top_k=top_k)
+        results = vsm.search(effective_query, top_k=fetch_k)
         _, _, query_details = vsm.compute_query_weights(effective_query)
+
+    # 5. Apply Gender Intent Consistency Filter
+    if gender_intent:
+        gender_filtered = []
+        for r in results:
+            doc = ir["index"].documents.get(r["doc_id"])
+            if not doc:
+                continue
+            if gender_intent == "women" and doc.title.startswith(("Women's", "Unisex")):
+                gender_filtered.append(r)
+            elif gender_intent == "men" and doc.title.startswith(("Men's", "Unisex")):
+                gender_filtered.append(r)
+
+        if gender_filtered:
+            results = gender_filtered[:top_k]
+            for idx, item in enumerate(results, start=1):
+                item["rank"] = idx
+        else:
+            results = results[:top_k]
+    else:
+        results = results[:top_k]
 
     duration_ms = round((time.time() - t0) * 1000, 2)
     token = getattr(getattr(g, "request_trace", None), "token", None) if has_app_context() else None
@@ -64,6 +89,7 @@ def handle_vsm_search(
         "was_corrected": was_corrected,
         "suggested_query": spell_info["corrected_query"] if spell_info["was_corrected"] else None,
         "corrections": spell_info["corrections"] if was_corrected else {},
+        "gender_intent": gender_intent,
         "has_synonyms": expansion_info["has_expansions"],
         "expanded_terms": expansion_info["expanded_terms"],
         "synonym_map": expansion_info["synonym_map"],

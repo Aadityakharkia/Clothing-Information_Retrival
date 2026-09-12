@@ -17,6 +17,7 @@
       <div class="results-meta">
         <span id="results-count-label">Loading…</span>
         <span class="results-mode-badge" id="results-mode-badge">{{ mode | upper }}</span>
+        <span class="results-mode-badge" id="results-gender-badge" style="display:none; font-weight:600;"></span>
       </div>
     </div>
 
@@ -308,6 +309,26 @@ async function doSearch(q, mode) {
   document.getElementById('results-count-label').textContent =
     `${results.length} garment${results.length !== 1 ? 's' : ''} found (all matching results)`;
   document.getElementById('results-mode-badge').textContent = modeLabel;
+
+  const genderBadge = document.getElementById('results-gender-badge');
+  if (genderBadge) {
+    if (data.gender_intent) {
+      genderBadge.style.display = 'inline-block';
+      genderBadge.textContent = data.gender_intent === 'women' ? '♀ Women’s' : '♂ Men’s';
+      if (data.gender_intent === 'women') {
+        genderBadge.style.background = 'rgba(236,72,153,0.15)';
+        genderBadge.style.color = '#f472b6';
+        genderBadge.style.border = '1px solid rgba(236,72,153,0.3)';
+      } else {
+        genderBadge.style.background = 'rgba(59,130,246,0.15)';
+        genderBadge.style.color = '#60a5fa';
+        genderBadge.style.border = '1px solid rgba(59,130,246,0.3)';
+      }
+    } else {
+      genderBadge.style.display = 'none';
+    }
+  }
+
   document.getElementById('q-display').textContent = `"${q}"`;
   document.title = `"${q}" — Results | CSD358 IR`;
 

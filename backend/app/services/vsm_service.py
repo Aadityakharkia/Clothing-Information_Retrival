@@ -43,6 +43,11 @@ class VSMRetriever:
         stemmed_multipliers: Dict[str, float] = {}
         if term_weights_override:
             for term_raw, mult in term_weights_override.items():
+                # Extract all tokens from term_raw (e.g. 't-shirt' -> ['t', 'shirt'])
+                sub_tokens = self.preprocessor.preprocess(term_raw)
+                for sub_t in sub_tokens:
+                    stemmed_multipliers[sub_t] = mult
+                # Also include single-stem direct lookup
                 stemmed_t = self.preprocessor.stemmer.stem(term_raw.lower())
                 stemmed_multipliers[stemmed_t] = mult
 
