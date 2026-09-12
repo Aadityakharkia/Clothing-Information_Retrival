@@ -14,6 +14,7 @@ from .advanced_ir import AdvancedIREngine
 from .semantic_service import SemanticSearchService
 from .spelling_service import SpellingService
 from .synonym_service import ClothingThesaurusService
+from .autocomplete_service import AutocompleteService
 
 _ir_instances: Dict[str, Any] = {}
 
@@ -31,6 +32,7 @@ def get_ir_system(corpus_path: str) -> Dict[str, Any]:
         advanced = AdvancedIREngine(index, vsm)
         spelling = SpellingService(index)
         synonyms = ClothingThesaurusService(index)
+        autocomplete = AutocompleteService(index, spelling)
 
         output_dir = Path(corpus_path).resolve().parent.parent / "output"
         semantic_pkl = output_dir / "semantic_index.pkl"
@@ -50,7 +52,8 @@ def get_ir_system(corpus_path: str) -> Dict[str, Any]:
             "advanced": advanced,
             "semantic": semantic,
             "spelling": spelling,
-            "synonyms": synonyms
+            "synonyms": synonyms,
+            "autocomplete": autocomplete
         }
     return _ir_instances[corpus_path]
 

@@ -50,6 +50,11 @@ class ApiClient {
   }
 
   // Domain-specific IR methods
+  getSuggestions(query = '', limit = 8) {
+    const params = new URLSearchParams({ q: query, limit });
+    return this.request(`/suggest?${params.toString()}`);
+  }
+
   searchVSM(query, topK = 100, autocorrect = true, synonyms = true) {
     const params = new URLSearchParams({ q: query, top_k: topK, autocorrect, synonyms });
     return this.request(`/search/vsm?${params.toString()}`);

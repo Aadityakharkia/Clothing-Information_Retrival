@@ -404,7 +404,7 @@ html, body {
 }
 
 /* ── Search Pill ──────────────────────────────────── */
-.search-pill-wrap { width: 100%; max-width: 560px; }
+.search-pill-wrap { width: 100%; max-width: 560px; position: relative; }
 
 .search-pill {
   display: flex;
@@ -2029,3 +2029,394 @@ html, body {
   .search-page-inner { padding: 0 22px; }
   .home-clothing-section { padding: 0 16px; }
 }
+
+/* ======================================================================
+   Amazon-Style Autocomplete & Search Bar Enhancements
+   ====================================================================== */
+
+.search-pill {
+  position: relative;
+}
+
+/* Clear button (x) inside search inputs */
+.search-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(12, 10, 30, 0.07);
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-right: 8px;
+  flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.search-clear-btn:hover {
+  background: rgba(124, 58, 237, 0.14);
+  color: var(--purple);
+}
+
+.search-clear-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+/* Sidebar clear button adjustments */
+.sidebar-search {
+  position: relative;
+}
+
+.sidebar-search .search-clear-btn {
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+}
+
+/* Dropdown Container */
+.amazon-autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 20px 48px rgba(12, 8, 40, 0.14), 0 4px 12px rgba(12, 8, 40, 0.05);
+  z-index: 1050;
+  max-height: 480px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: none;
+  padding: 6px 0;
+}
+
+.amazon-autocomplete-dropdown.show {
+  display: block;
+  animation: autoDropdownFade 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes autoDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sidebar context position */
+.sidebar-search + .amazon-autocomplete-dropdown {
+  top: calc(100% + 6px);
+  border-radius: var(--r-sm);
+  max-height: 380px;
+}
+
+/* Headers inside dropdown */
+.auto-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 18px 4px 18px;
+}
+
+.auto-header.mt-divider {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.auto-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.auto-header-title svg {
+  stroke: var(--purple);
+}
+
+.auto-clear-history-btn {
+  background: none;
+  border: none;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.auto-clear-history-btn:hover {
+  color: var(--pink);
+  background: rgba(236, 72, 153, 0.08);
+}
+
+/* Typo Notice */
+.auto-typo-notice {
+  background: rgba(124, 58, 237, 0.06);
+  padding: 8px 18px;
+  font-size: 0.82rem;
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Individual Suggestion Row */
+.auto-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+}
+
+.auto-item:hover,
+.auto-item.active {
+  background: #F5F3FF;
+}
+
+.auto-item.active .auto-text {
+  color: var(--purple);
+}
+
+.auto-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.auto-icon {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-muted);
+  flex-shrink: 0;
+  transition: stroke 0.12s;
+}
+
+.auto-item:hover .auto-icon,
+.auto-item.active .auto-icon {
+  stroke: var(--purple);
+}
+
+.auto-icon-dept {
+  stroke: var(--pink);
+}
+
+.auto-item:hover .auto-icon-dept,
+.auto-item.active .auto-icon-dept {
+  stroke: var(--pink-bright);
+}
+
+.auto-text {
+  font-family: var(--font-body);
+  font-size: 0.94rem;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-search + .amazon-autocomplete-dropdown .auto-text {
+  font-size: 0.84rem;
+}
+
+.auto-prefix {
+  font-weight: 400;
+  color: var(--text-body);
+}
+
+.auto-bold {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.auto-item.active .auto-bold {
+  color: var(--purple);
+}
+
+/* Category Scope Styling */
+.auto-scope-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.auto-scope-tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--purple);
+  background: rgba(124, 58, 237, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.auto-arrow-right {
+  stroke: var(--text-muted);
+  opacity: 0.5;
+  transition: transform 0.15s, stroke 0.15s, opacity 0.15s;
+}
+
+.auto-item:hover .auto-arrow-right,
+.auto-item.active .auto-arrow-right {
+  transform: translateX(2px);
+  stroke: var(--purple);
+  opacity: 1;
+}
+
+/* Recent Search item styles */
+.auto-recent-text {
+  color: var(--text-body);
+}
+
+.auto-remove-recent-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: all 0.15s;
+}
+
+.auto-remove-recent-btn:hover {
+  opacity: 1;
+  color: var(--pink);
+  background: rgba(236, 72, 153, 0.1);
+}
+
+.auto-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--teal);
+  background: rgba(20, 184, 166, 0.1);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Matching Garments Sub-section (Rich Product Autocomplete) */
+.auto-products-container {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px 8px 8px;
+  gap: 4px;
+}
+
+.auto-product-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  gap: 12px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.auto-product-row:hover,
+.auto-product-row.active {
+  background: #F5F3FF;
+  transform: translateX(2px);
+}
+
+.auto-prod-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg);
+}
+
+.auto-prod-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.auto-prod-title {
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.auto-product-row.active .auto-prod-title,
+.auto-product-row:hover .auto-prod-title {
+  color: var(--purple);
+}
+
+.auto-prod-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auto-prod-cat {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.auto-prod-id {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--purple);
+}
+
+.auto-prod-inspect-btn {
+  background: rgba(124, 58, 237, 0.08);
+  color: var(--purple);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  font-family: var(--font-display);
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.auto-prod-inspect-btn:hover {
+  background: var(--purple);
+  color: #fff;
+  border-color: var(--purple);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+}
+

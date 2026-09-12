@@ -4,6 +4,7 @@ from .semantic_controller import handle_semantic_search
 from .tracer_controller import handle_trace
 from .feedback_controller import handle_rocchio_feedback
 from .vocab_controller import handle_get_vocabulary
+from .autocomplete_controller import handle_autocomplete
 
 __all__ = [
     "handle_vsm_search",
@@ -12,5 +13,7 @@ __all__ = [
     "handle_semantic_search",
     "handle_trace",
     "handle_rocchio_feedback",
-    "handle_get_vocabulary"
+    "handle_get_vocabulary",
+    "handle_autocomplete"
 ]
+
