@@ -34,10 +34,18 @@ def health():
 
 @api_bp.route("/search/vsm", methods=["GET"])
 def search_vsm():
-    q      = request.args.get("q", "").strip()
-    top_k  = int(request.args.get("top_k", current_app.config.get("DEFAULT_TOP_K", 10)))
-    corpus = current_app.config["CORPUS_PATH"]
-    return jsonify(handle_vsm_search(query=q, top_k=top_k, corpus_path=corpus))
+    q           = request.args.get("q", "").strip()
+    top_k       = int(request.args.get("top_k", current_app.config.get("DEFAULT_TOP_K", 10)))
+    autocorrect = request.args.get("autocorrect", "true").lower() in ("true", "1", "yes")
+    synonyms    = request.args.get("synonyms", "true").lower() in ("true", "1", "yes")
+    corpus      = current_app.config["CORPUS_PATH"]
+    return jsonify(handle_vsm_search(
+        query=q,
+        top_k=top_k,
+        autocorrect=autocorrect,
+        synonyms=synonyms,
+        corpus_path=corpus
+    ))
 
 
 @api_bp.route("/search/positional", methods=["GET"])

@@ -12,6 +12,8 @@ from .vsm_service import VSMRetriever
 from .positional_service import PositionalSearcher
 from .advanced_ir import AdvancedIREngine
 from .semantic_service import SemanticSearchService
+from .spelling_service import SpellingService
+from .synonym_service import ClothingThesaurusService
 
 _ir_instances: Dict[str, Any] = {}
 
@@ -27,6 +29,8 @@ def get_ir_system(corpus_path: str) -> Dict[str, Any]:
         vsm = VSMRetriever(index)
         positional = PositionalSearcher(index)
         advanced = AdvancedIREngine(index, vsm)
+        spelling = SpellingService(index)
+        synonyms = ClothingThesaurusService(index)
 
         output_dir = Path(corpus_path).resolve().parent.parent / "output"
         semantic_pkl = output_dir / "semantic_index.pkl"
@@ -44,7 +48,9 @@ def get_ir_system(corpus_path: str) -> Dict[str, Any]:
             "vsm": vsm,
             "positional": positional,
             "advanced": advanced,
-            "semantic": semantic
+            "semantic": semantic,
+            "spelling": spelling,
+            "synonyms": synonyms
         }
     return _ir_instances[corpus_path]
 
@@ -57,5 +63,7 @@ __all__ = [
     "PositionalSearcher",
     "AdvancedIREngine",
     "SemanticSearchService",
+    "SpellingService",
+    "ClothingThesaurusService",
     "get_ir_system"
 ]

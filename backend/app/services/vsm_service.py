@@ -25,7 +25,11 @@ class VSMRetriever:
         self.preprocessor = Preprocessor()
         self.N = index.total_docs if index.total_docs > 0 else 100
 
-    def compute_query_weights(self, query: str) -> Tuple[Dict[str, float], float, Dict[str, Any]]:
+    def compute_query_weights(
+        self,
+        query: str,
+        term_weights_override: Optional[Dict[str, float]] = None
+    ) -> Tuple[Dict[str, float], float, Dict[str, Any]]:
         query_terms = self.preprocessor.preprocess(query)
         if not query_terms:
             return {}, 0.0, {}
@@ -34,6 +38,13 @@ class VSMRetriever:
         tf_q: Dict[str, int] = {}
         for t in query_terms:
             tf_q[t] = tf_q.get(t, 0) + 1
+
+        # Map unstemmed override keys to stemmed terms if needed
+        stemmed_multipliers: Dict[str, float] = {}
+        if term_weights_override:
+            for term_raw, mult in term_weights_override.items():
+                stemmed_t = self.preprocessor.stemmer.stem(term_raw.lower())
+                stemmed_multipliers[stemmed_t] = mult
 
         raw_weights: Dict[str, float] = {}
         query_details: Dict[str, Any] = {}
@@ -47,8 +58,9 @@ class VSMRetriever:
                 df = 0
                 idf = 0.0
 
+            mult = stemmed_multipliers.get(term, 1.0)
             tf_weight = 1.0 + math.log10(tf)
-            raw_w = tf_weight * idf
+            raw_w = tf_weight * idf * mult
             raw_weights[term] = raw_w
             sum_sq += raw_w * raw_w
 
@@ -56,7 +68,8 @@ class VSMRetriever:
                 "tf": tf,
                 "df": df,
                 "idf": idf,
-                "raw_weight": raw_w
+                "raw_weight": raw_w,
+                "multiplier": mult
             }
 
         q_length = math.sqrt(sum_sq)
@@ -72,8 +85,16 @@ class VSMRetriever:
 
         return norm_weights, q_length, query_details
 
-    def search(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
-        norm_q_weights, q_length, query_details = self.compute_query_weights(query)
+    def search(
+        self,
+        query: str,
+        top_k: int = 10,
+        term_weights_override: Optional[Dict[str, float]] = None
+    ) -> List[Dict[str, Any]]:
+        norm_q_weights, q_length, query_details = self.compute_query_weights(
+            query,
+            term_weights_override=term_weights_override
+        )
         if not norm_q_weights or q_length == 0.0:
             return []
 

@@ -50,8 +50,8 @@ class ApiClient {
   }
 
   // Domain-specific IR methods
-  searchVSM(query, topK = 100) {
-    const params = new URLSearchParams({ q: query, top_k: topK });
+  searchVSM(query, topK = 100, autocorrect = true, synonyms = true) {
+    const params = new URLSearchParams({ q: query, top_k: topK, autocorrect, synonyms });
     return this.request(`/search/vsm?${params.toString()}`);
   }
 
