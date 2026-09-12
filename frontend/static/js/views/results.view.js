@@ -95,6 +95,31 @@ class ResultsView {
         .map(([t, c]) => `<span class="contrib-chip">${t}: +${Number(c).toFixed(3)}</span>`)
         .join('');
 
+      let positionalEvidence = '';
+      if (item.matched_positions && item.matched_positions.length > 0) {
+        const chainsStr = item.matched_positions.slice(0, 5)
+          .map(c => `[${c.join(' → ')}]`)
+          .join(', ');
+        positionalEvidence = `
+          <div class="rc-terms" style="margin-top:6px;">
+            <span class="contrib-chip" style="border-color:rgba(124,58,237,0.4);background:rgba(124,58,237,0.08);color:var(--purple);font-weight:600;">
+              ✦ Matching Positions: ${chainsStr}${item.matched_positions.length > 5 ? ` (+${item.matched_positions.length - 5} more)` : ''}
+            </span>
+          </div>
+        `;
+      } else if (item.matched_pairs && item.matched_pairs.length > 0) {
+        const pairsStr = item.matched_pairs.slice(0, 4)
+          .map(([p1, p2, diff]) => `[pos ${p1} &amp; ${p2}, &Delta;=${diff}&le;${item.k}]`)
+          .join(', ');
+        positionalEvidence = `
+          <div class="rc-terms" style="margin-top:6px;">
+            <span class="contrib-chip" style="border-color:rgba(20,184,166,0.4);background:rgba(20,184,166,0.08);color:var(--teal);font-weight:600;">
+              ✦ Proximity Positions: ${pairsStr}${item.matched_pairs.length > 4 ? ` (+${item.matched_pairs.length - 4} more)` : ''}
+            </span>
+          </div>
+        `;
+      }
+
       html += `
         <article class="result-card" data-doc-id="${item.doc_id}" id="card-${item.doc_id}">
           <div class="rc-head">
@@ -114,6 +139,7 @@ class ResultsView {
           <h2 class="rc-title">${item.title}</h2>
           <p class="rc-desc">${(item.text || '').substring(0, 240)}…</p>
           ${semanticDetails}
+          ${positionalEvidence}
           ${termChips ? `<div class="rc-terms">${termChips}</div>` : ''}
           ${mode === 'vsm' ? `
             <div class="rc-foot">

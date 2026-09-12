@@ -12,7 +12,8 @@ from ..controllers import (
     handle_semantic_search,
     handle_trace,
     handle_rocchio_feedback,
-    handle_get_vocabulary
+    handle_get_vocabulary,
+    handle_autocomplete
 )
 from ..services import get_ir_system
 
@@ -72,6 +73,17 @@ def search_semantic():
     top_k  = int(request.args.get("top_k", current_app.config.get("DEFAULT_TOP_K", 10)))
     corpus = current_app.config["CORPUS_PATH"]
     return jsonify(handle_semantic_search(query=q, mode=mode, alpha=alpha, top_k=top_k, corpus_path=corpus))
+
+
+# ── Autocomplete / Suggestions ─────────────────────────────────────────────────
+
+@api_bp.route("/suggest", methods=["GET"])
+@api_bp.route("/autocomplete", methods=["GET"])
+def suggest():
+    q      = request.args.get("q", "").strip()
+    limit  = int(request.args.get("limit", 8))
+    corpus = current_app.config["CORPUS_PATH"]
+    return jsonify(handle_autocomplete(query=q, limit=limit, corpus_path=corpus))
 
 
 # ── Tracer ─────────────────────────────────────────────────────────────────────
