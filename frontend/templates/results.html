@@ -108,6 +108,27 @@
 
       <!-- RESULTS LIST -->
       <section id="results-list-wrap">
+
+        <!-- Typo / Spelling Correction Banner -->
+        <div id="spelling-banner" class="spelling-banner" style="display:none; padding:12px 16px; margin-bottom:14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:8px; font-size:0.92rem; color:var(--text-main);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent); flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Showing results for <a href="javascript:void(0)" id="corrected-query-link" style="color:var(--accent); font-weight:600; text-decoration:underline;"></a></span>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px; margin-left:24px;">
+            Search instead for <a href="javascript:void(0)" id="original-query-link" style="color:var(--text-muted); text-decoration:underline;"></a>
+          </div>
+        </div>
+
+        <!-- Apparel Synonyms & Related Categories Banner -->
+        <div id="synonym-banner" class="synonym-banner" style="display:none; padding:10px 14px; margin-bottom:14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:8px; font-size:0.82rem; color:var(--text-muted); align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-weight:600; color:var(--text-main); display:inline-flex; align-items:center; gap:4px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            Related apparel:
+          </span>
+          <div id="synonym-chips" style="display:inline-flex; gap:6px; flex-wrap:wrap;"></div>
+        </div>
+
         <div class="results-list" id="results-list">
           <div class="loading-state">
             <div class="spinner"></div>
@@ -226,6 +247,57 @@ async function doSearch(q, mode) {
   }
 
   const results = data.results || [];
+
+  // ── Typo / Spelling Correction Banner ──
+  const spellBanner = document.getElementById('spelling-banner');
+  if (spellBanner) {
+    if (data.was_corrected && data.suggested_query && data.suggested_query.toLowerCase() !== q.toLowerCase()) {
+      spellBanner.style.display = 'block';
+      const corrLink = document.getElementById('corrected-query-link');
+      const origLink = document.getElementById('original-query-link');
+      if (corrLink) {
+        corrLink.textContent = data.suggested_query;
+        corrLink.onclick = () => {
+          const inp = document.getElementById('sidebar-query-input');
+          if (inp) inp.value = data.suggested_query;
+          doSearch(data.suggested_query, mode);
+        };
+      }
+      if (origLink) {
+        origLink.textContent = q;
+        origLink.onclick = async () => {
+          // Force search without autocorrect
+          const list = document.getElementById('results-list');
+          list.innerHTML = `<div class="loading-state"><div class="spinner"></div><h3>Searching exact terms…</h3></div>`;
+          const rawData = await window.apiClient.searchVSM(q, TOTAL_DOCS, false, false);
+          spellBanner.style.display = 'none';
+          document.getElementById('results-count-label').textContent = `${(rawData.results||[]).length} garments found`;
+          if (!rawData.results || !rawData.results.length) {
+            list.innerHTML = `<div class="no-results"><h3>No garments matched "${escHtml(q)}"</h3><p>Terms have df=0 in the corpus vocabulary.</p></div>`;
+          } else {
+            renderCardList(rawData.results, mode, q);
+          }
+        };
+      }
+    } else {
+      spellBanner.style.display = 'none';
+    }
+  }
+
+  // ── Synonyms & Related Apparel Banner ──
+  const synBanner = document.getElementById('synonym-banner');
+  const synChips = document.getElementById('synonym-chips');
+  if (synBanner && synChips) {
+    if (data.has_synonyms && data.expanded_terms && data.expanded_terms.length > 0) {
+      synBanner.style.display = 'flex';
+      synChips.innerHTML = data.expanded_terms.map(term => {
+        return `<button class="synonym-pill" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-main); font-size:0.75rem; padding:3px 10px; border-radius:12px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(99,102,241,0.2)';this.style.borderColor='var(--accent)'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='var(--border-color)'" onclick="const inp=document.getElementById('sidebar-query-input'); if(inp) inp.value='${term}'; doSearch('${term}', '${mode}');">+ ${term}</button>`;
+      }).join('');
+    } else {
+      synBanner.style.display = 'none';
+    }
+  }
+
   let modeLabels = [];
   if (hasVsm) modeLabels.push('VSM');
   if (hasPhrase) modeLabels.push('Phrase');
@@ -244,7 +316,7 @@ async function doSearch(q, mode) {
     return;
   }
 
-  renderCardList(results, mode, q);
+  renderCardList(results, mode, data.effective_query || q);
 }
 
 function renderCardList(results, mode, q) {

@@ -27,24 +27,29 @@ def handle_semantic_search(
     ir = get_ir_system(corpus_path)
     semantic_service = ir["semantic"]
     vsm = ir["vsm"]
+    spelling = ir["spelling"]
 
-    is_nl = semantic_service.is_natural_language(query)
+    # Spelling correction for clean semantic encoding
+    spell_info = spelling.correct_query(query)
+    effective_query = spell_info["corrected_query"] if spell_info["was_corrected"] else query
+
+    is_nl = semantic_service.is_natural_language(effective_query)
 
     effective_mode = mode
     if mode == "auto":
         effective_mode = "hybrid" if is_nl else "vsm"
 
     if effective_mode == "semantic":
-        results = semantic_service.search(query, top_k=top_k)
+        results = semantic_service.search(effective_query, top_k=top_k)
     elif effective_mode == "hybrid":
         results = semantic_service.hybrid_search(
-            query,
+            effective_query,
             vsm_retriever=vsm,
             alpha=alpha,
             top_k=top_k
         )
     else:  # fallback to pure VSM
-        results = vsm.search(query, top_k=top_k)
+        results = vsm.search(effective_query, top_k=top_k)
         for r in results:
             r["combined_score"] = r["cosine_score"]
 
@@ -55,6 +60,10 @@ def handle_semantic_search(
     return {
         "success": True,
         "query": query,
+        "effective_query": effective_query,
+        "was_corrected": spell_info["was_corrected"],
+        "suggested_query": spell_info["corrected_query"] if spell_info["was_corrected"] else None,
+        "corrections": spell_info["corrections"] if spell_info["was_corrected"] else {},
         "mode": effective_mode,
         "requested_mode": mode,
         "is_natural_language": is_nl,
